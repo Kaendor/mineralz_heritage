@@ -133,10 +133,6 @@ impl PlayerAnimation {
         }
     }
 
-    pub fn new() -> Self {
-        Self::idling()
-    }
-
     /// Update animation timers.
     pub fn update_timer(&mut self, delta: Duration) {
         self.timer.tick(delta);

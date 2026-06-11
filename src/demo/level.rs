@@ -1,23 +1,16 @@
 //! Spawn the main level.
 
-use std::time::Duration;
-
-use bevy::{color::palettes, prelude::*};
+use bevy::prelude::*;
 use bevy_asset_loader::asset_collection::AssetCollection;
 use bevy_ecs_tilemap::{
     TilemapBundle,
     anchor::TilemapAnchor,
-    map::{TilemapGridSize, TilemapSize, TilemapTexture, TilemapTileSize, TilemapType},
+    map::{TilemapSize, TilemapTexture, TilemapTileSize, TilemapType},
     tiles::{TileBundle, TileColor, TilePos, TileStorage},
 };
-use bevy_tweening::{EntityCommandsTweeningExtensions, Tween, lens::TransformPositionLens};
-use leafwing_input_manager::{Actionlike, prelude::ActionState};
 
 use crate::{
-    demo::{
-        input::Action,
-        player::{Player, PlayerAssets, player},
-    },
+    demo::player::{PlayerAssets, player},
     screens::Screen,
 };
 
@@ -107,19 +100,6 @@ pub fn spawn_level(
             ..default()
         },
     ));
-}
-
-fn on_left_click(trigger: On<Pointer<Press>>, mut tiles: Query<&mut TileColor>) {
-    let pointer = trigger.event();
-
-    match pointer.button {
-        PointerButton::Primary => {
-            if let Ok(mut tile_color) = tiles.get_mut(trigger.event_target()) {
-                tile_color.0 = palettes::tailwind::TEAL_500.into();
-            }
-        }
-        PointerButton::Middle | PointerButton::Secondary => {}
-    }
 }
 
 fn recolor_on<E: EntityEvent + Clone + Reflect>(

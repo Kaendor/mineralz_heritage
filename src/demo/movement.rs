@@ -14,14 +14,18 @@
 //! consider using a [fixed timestep](https://github.com/bevyengine/bevy/blob/main/examples/movement/physics_in_fixed_timestep.rs).
 
 use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_ecs_tilemap::tiles::TilePos;
+use bevy_ecs_tilemap::{
+    anchor::TilemapAnchor,
+    map::{TilemapGridSize, TilemapSize, TilemapTileSize, TilemapType},
+    tiles::TilePos,
+};
 
 use crate::{AppSystems, PausableSystems};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
         Update,
-        (apply_movement, apply_screen_wrap)
+        (follow_path, apply_movement, apply_screen_wrap)
             .chain()
             .in_set(AppSystems::Update)
             .in_set(PausableSystems),
@@ -47,6 +51,52 @@ pub struct MovementController {
 pub struct FollowPath {
     path: Vec<TilePos>,
     current_index: usize,
+}
+
+const ARRIVAL_THRESHOLD: f32 = 0.5;
+
+fn follow_path(
+    mut commands: Commands,
+    tilemap_q: Query<(
+        &TilemapSize,
+        &TilemapGridSize,
+        &TilemapTileSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
+    mut player: Query<(
+        Entity,
+        &mut FollowPath,
+        &mut MovementController,
+        &mut TilePos,
+        &mut Transform,
+    )>,
+) {
+    let Ok((map_size, grid_size, tile_size, map_type, anchor)) = tilemap_q.single() else {
+        return;
+    };
+
+    for (entity, mut follow, mut controller, mut tile_pos, mut transform) in &mut player {
+        let Some(target_tile) = follow.path.get(follow.current_index).copied() else {
+            controller.intent = Vec2::ZERO;
+            commands.entity(entity).remove::<FollowPath>();
+            continue;
+        };
+
+        let target_world =
+            target_tile.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
+        let to_target = target_world - transform.translation.xy();
+
+        if to_target.length() <= ARRIVAL_THRESHOLD {
+            // Snap to avoid drift, update the logical tile, advance.
+            transform.translation = target_world.extend(transform.translation.z);
+            *tile_pos = target_tile;
+            follow.current_index += 1;
+            controller.intent = Vec2::ZERO;
+        } else {
+            controller.intent = to_target.normalize_or_zero();
+        }
+    }
 }
 
 impl FollowPath {

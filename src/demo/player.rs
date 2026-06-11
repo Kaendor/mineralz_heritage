@@ -2,24 +2,10 @@
 
 use bevy::prelude::*;
 use bevy_asset_loader::asset_collection::AssetCollection;
-use bevy_ecs_tilemap::tiles::TilePos;
 
-use crate::{
-    AppSystems, PausableSystems,
-    demo::{
-        animation::PlayerAnimation,
-        movement::{MovementController, ScreenWrap},
-    },
-};
+use crate::demo::movement::{MovementController, ScreenWrap};
 
 pub(super) fn plugin(app: &mut App) {
-    // Record directional input as movement controls.
-    app.add_systems(
-        Update,
-        record_player_directional_input
-            .in_set(AppSystems::RecordInput)
-            .in_set(PausableSystems),
-    );
     app.init_resource::<CursorPos>();
     app.add_systems(
         Update,

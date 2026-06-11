@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use bevy::{
     color::palettes,
     picking::{
@@ -17,12 +15,11 @@ use bevy_ecs_tilemap::{
     tiles::{TileColor, TilePos, TileStorage},
 };
 use bevy_pancam::PanCamPlugin;
-use bevy_tweening::{EntityCommandsTweeningExtensions, Tween};
 use leafwing_input_manager::Actionlike;
 use pathfinding::prelude::astar;
 
 use crate::demo::{
-    movement::{FollowPath, MovementController},
+    movement::FollowPath,
     player::{CursorPos, Player},
 };
 
@@ -120,20 +117,14 @@ fn on_right_click_move_player(
     trigger: On<Pointer<Press>>,
     mut commands: Commands,
     mut tiles: Query<(&mut TileColor, &TilePos)>,
-    mut player: Query<(Entity, &TilePos, &mut MovementController), With<Player>>,
-    tilemap_q: Query<(
-        &TilemapSize,
-        &TilemapGridSize,
-        &TilemapTileSize,
-        &TilemapType,
-        &TilemapAnchor,
-    )>,
+    player: Query<(Entity, &TilePos), With<Player>>,
+    tilemap_q: Query<&TilemapSize>,
 ) {
     let pointer = trigger.event();
-    let Ok((player_entity, from, movements)) = player.single() else {
+    let Ok((player_entity, from)) = player.single() else {
         return;
     };
-    let Ok((map_size, grid_size, tile_size, map_type, anchor)) = tilemap_q.single() else {
+    let Ok(map_size) = tilemap_q.single() else {
         return;
     };
 
@@ -159,7 +150,6 @@ fn on_right_click_move_player(
     let path = astar(from, successors, heuristic, success);
 
     if let Some(path) = path {
-        info!("Path found: {path:?}");
         commands
             .entity(player_entity)
             .insert(FollowPath::new(path.0));
