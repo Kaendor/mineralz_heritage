@@ -9,7 +9,7 @@ use bevy_ecs_tilemap::{
     tiles::{TileBundle, TileColor, TilePos, TileStorage},
 };
 
-use crate::{demo::player::PlayerAssets, screens::Screen};
+use crate::screens::Screen;
 
 pub(super) fn plugin(app: &mut App) {}
 
@@ -45,12 +45,9 @@ pub fn spawn_level(mut commands: Commands, level_assets: Res<LevelAssets>) {
                 ))
                 .observe(recolor_on::<Pointer<Over>>(Color::BLACK))
                 .observe(recolor_on::<Pointer<Out>>(Color::WHITE))
-                .observe(recolor_on::<Pointer<Release>>(
-                    palettes::tailwind::RED_500.into(),
-                ))
-                .observe(recolor_on::<Pointer<Press>>(
-                    palettes::tailwind::TEAL_500.into(),
-                ))
+                .observe(recolor_on::<Pointer<Release>>(Color::WHITE))
+                .observe(on_right_click)
+                .observe(on_left_click)
                 .id();
 
             storage.set(&pos, tile_entity);
@@ -83,6 +80,31 @@ pub fn spawn_level(mut commands: Commands, level_assets: Res<LevelAssets>) {
             ..default()
         },
     ));
+}
+
+fn on_left_click(trigger: On<Pointer<Press>>, mut tiles: Query<&mut TileColor>) {
+    let pointer = trigger.event();
+    match pointer.button {
+        PointerButton::Primary => {
+            if let Ok(mut tile_color) = tiles.get_mut(trigger.event_target()) {
+                tile_color.0 = palettes::tailwind::TEAL_500.into();
+            }
+        }
+        PointerButton::Middle => {}
+        PointerButton::Secondary => {}
+    }
+}
+fn on_right_click(trigger: On<Pointer<Press>>, mut tiles: Query<&mut TileColor>) {
+    let pointer = trigger.event();
+    match pointer.button {
+        PointerButton::Secondary => {
+            if let Ok(mut tile_color) = tiles.get_mut(trigger.event_target()) {
+                tile_color.0 = palettes::tailwind::RED_500.into();
+            }
+        }
+        PointerButton::Primary => {}
+        PointerButton::Middle => {}
+    }
 }
 
 fn recolor_on<E: EntityEvent + Clone + Reflect>(
