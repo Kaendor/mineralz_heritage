@@ -2,6 +2,7 @@
 
 use bevy::prelude::*;
 use bevy_asset_loader::asset_collection::AssetCollection;
+use bevy_ecs_tilemap::tiles::TilePos;
 
 use crate::{
     AppSystems, PausableSystems,
@@ -54,41 +55,20 @@ pub fn update_cursor_pos(
         }
     }
 }
-/// The player character.
-pub fn player(
-    max_speed: f32,
-    player_assets: &PlayerAssets,
-    texture_atlas_layouts: &mut Assets<TextureAtlasLayout>,
-) -> impl Bundle {
-    // A texture atlas is a way to split a single image into a grid of related images.
-    // You can learn more in this example: https://github.com/bevyengine/bevy/blob/latest/examples/2d/texture_atlas.rs
-    let layout = TextureAtlasLayout::from_grid(UVec2::splat(32), 6, 2, Some(UVec2::splat(1)), None);
-    let texture_atlas_layout = texture_atlas_layouts.add(layout);
-    let player_animation = PlayerAnimation::new();
 
+/// The player character.
+pub fn player(player_assets: &PlayerAssets) -> impl Bundle {
     (
         Name::new("Player"),
         Player,
-        Sprite::from_atlas_image(
-            player_assets.ducky.clone(),
-            TextureAtlas {
-                layout: texture_atlas_layout,
-                index: player_animation.get_atlas_index(),
-            },
-        ),
-        Transform::from_scale(Vec2::splat(8.0).extend(1.0)),
-        MovementController {
-            max_speed,
-            ..default()
-        },
+        Sprite::from_image(player_assets.player.clone()),
         ScreenWrap,
-        player_animation,
     )
 }
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Default, Reflect)]
 #[reflect(Component)]
-struct Player;
+pub struct Player;
 
 fn record_player_directional_input(
     input: Res<ButtonInput<KeyCode>>,
@@ -125,6 +105,11 @@ pub struct PlayerAssets {
     #[asset(path = "images/ducky.png")]
     #[asset(image(sampler(filter = nearest)))]
     ducky: Handle<Image>,
+
+    #[asset(path = "images/player_sprite.png")]
+    #[asset(image(sampler(filter = nearest)))]
+    player: Handle<Image>,
+
     #[asset(
         paths(
             "audio/sound_effects/step1.ogg",

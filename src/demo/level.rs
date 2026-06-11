@@ -1,15 +1,25 @@
 //! Spawn the main level.
 
+use std::time::Duration;
+
 use bevy::{color::palettes, prelude::*};
 use bevy_asset_loader::asset_collection::AssetCollection;
 use bevy_ecs_tilemap::{
     TilemapBundle,
     anchor::TilemapAnchor,
-    map::{TilemapSize, TilemapTexture, TilemapTileSize, TilemapType},
+    map::{TilemapGridSize, TilemapSize, TilemapTexture, TilemapTileSize, TilemapType},
     tiles::{TileBundle, TileColor, TilePos, TileStorage},
 };
+use bevy_tweening::{EntityCommandsTweeningExtensions, Tween, lens::TransformPositionLens};
+use leafwing_input_manager::{Actionlike, prelude::ActionState};
 
-use crate::screens::Screen;
+use crate::{
+    demo::{
+        input::Action,
+        player::{Player, PlayerAssets, player},
+    },
+    screens::Screen,
+};
 
 pub(super) fn plugin(app: &mut App) {}
 
@@ -25,7 +35,11 @@ pub struct LevelAssets {
 }
 
 /// A system that spawns the main level.
-pub fn spawn_level(mut commands: Commands, level_assets: Res<LevelAssets>) {
+pub fn spawn_level(
+    mut commands: Commands,
+    level_assets: Res<LevelAssets>,
+    player_assets: Res<PlayerAssets>,
+) {
     let map_size = TilemapSize { x: 32, y: 32 };
     let tilemap = commands.spawn_empty().id();
 
@@ -46,7 +60,7 @@ pub fn spawn_level(mut commands: Commands, level_assets: Res<LevelAssets>) {
                 .observe(recolor_on::<Pointer<Over>>(Color::BLACK))
                 .observe(recolor_on::<Pointer<Out>>(Color::WHITE))
                 .observe(recolor_on::<Pointer<Release>>(Color::WHITE))
-                .observe(on_right_click)
+                .observe(on_right_click_move_player)
                 .observe(on_left_click)
                 .id();
 
@@ -58,12 +72,27 @@ pub fn spawn_level(mut commands: Commands, level_assets: Res<LevelAssets>) {
     let grid_size = tile_size.into();
     let map_type = TilemapType::default();
 
+    let player_tile_position = TilePos::new(0, 0);
+
+    let player_world_position = player_tile_position.center_in_world(
+        &map_size,
+        &grid_size,
+        &tile_size,
+        &map_type,
+        &TilemapAnchor::Center,
+    );
+
     let level = commands
         .spawn((
             Name::new("Level"),
             Transform::default(),
             Visibility::default(),
             DespawnOnExit(Screen::Gameplay),
+            children![(
+                player(&player_assets),
+                player_tile_position,
+                Transform::from_translation(player_world_position.extend(0.1))
+            )],
         ))
         .id();
 
@@ -84,35 +113,60 @@ pub fn spawn_level(mut commands: Commands, level_assets: Res<LevelAssets>) {
 
 fn on_left_click(trigger: On<Pointer<Press>>, mut tiles: Query<&mut TileColor>) {
     let pointer = trigger.event();
+
     match pointer.button {
         PointerButton::Primary => {
             if let Ok(mut tile_color) = tiles.get_mut(trigger.event_target()) {
                 tile_color.0 = palettes::tailwind::TEAL_500.into();
             }
         }
-        PointerButton::Middle => {}
-        PointerButton::Secondary => {}
+        PointerButton::Middle | PointerButton::Secondary => {}
     }
 }
-fn on_right_click(trigger: On<Pointer<Press>>, mut tiles: Query<&mut TileColor>) {
+
+fn on_right_click_move_player(
+    trigger: On<Pointer<Press>>,
+    mut commands: Commands,
+    mut tiles: Query<(&mut TileColor, &TilePos)>,
+    player: Query<Entity, With<Player>>,
+    tilemap_q: Query<(
+        &TilemapSize,
+        &TilemapGridSize,
+        &TilemapTileSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
+) {
     let pointer = trigger.event();
-    match pointer.button {
-        PointerButton::Secondary => {
-            if let Ok(mut tile_color) = tiles.get_mut(trigger.event_target()) {
-                tile_color.0 = palettes::tailwind::RED_500.into();
-            }
-        }
-        PointerButton::Primary => {}
-        PointerButton::Middle => {}
-    }
+    let Ok(player_entity) = player.single() else {
+        return;
+    };
+    let Ok((map_size, grid_size, tile_size, map_type, anchor)) = tilemap_q.single() else {
+        return;
+    };
+
+    let PointerButton::Secondary = pointer.button else {
+        return;
+    };
+
+    let Ok((mut tile_color, tile_pos)) = tiles.get_mut(trigger.event_target()) else {
+        return;
+    };
+
+    tile_color.0 = palettes::tailwind::RED_500.into();
+    let end = tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
+
+    commands.entity(player_entity).move_to(
+        end.extend(0.1),
+        Duration::from_millis(300),
+        EaseFunction::QuadraticInOut,
+    );
 }
 
 fn recolor_on<E: EntityEvent + Clone + Reflect>(
     color: Color,
 ) -> impl Fn(On<E>, Query<&mut TileColor>) {
     move |ev, mut tile_q| {
-        info!("picking event");
-
         if let Ok(mut tile_color) = tile_q.get_mut(ev.event_target()) {
             tile_color.0 = color;
         }

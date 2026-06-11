@@ -5,6 +5,7 @@
 //! - [Timers](https://github.com/bevyengine/bevy/blob/latest/examples/time/timers.rs)
 
 use bevy::prelude::*;
+use bevy_tweening::TweeningPlugin;
 use rand::prelude::*;
 use std::time::Duration;
 
@@ -16,6 +17,7 @@ use crate::{
 
 pub(super) fn plugin(app: &mut App) {
     // Animate and play sound effects based on controls.
+    app.add_plugins(TweeningPlugin);
     app.add_systems(
         Update,
         (

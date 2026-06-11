@@ -12,15 +12,23 @@ use bevy_ecs_tilemap::{
     map::{TilemapGridSize, TilemapSize, TilemapTileSize, TilemapType},
     tiles::{TilePos, TileStorage},
 };
+use bevy_pancam::PanCamPlugin;
+use leafwing_input_manager::Actionlike;
 
 use crate::demo::player::CursorPos;
+
+#[derive(Actionlike, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
+pub enum Action {
+    GoTo,
+    PickTile,
+}
 
 pub fn plugin(app: &mut App) {
     app.add_systems(
         PreUpdate,
         tilemap_picking_hits.in_set(PickingSystems::Backend),
     );
-    app.add_plugins(TilemapPlugin);
+    app.add_plugins((TilemapPlugin, PanCamPlugin::default()));
 }
 
 /// Picking backend for tilemaps
