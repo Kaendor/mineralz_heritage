@@ -6,6 +6,7 @@
 use bevy::prelude::*;
 
 mod animation;
+mod debug;
 pub mod level;
 mod movement;
 pub mod player;
@@ -16,5 +17,6 @@ pub(super) fn plugin(app: &mut App) {
         level::plugin,
         movement::plugin,
         player::plugin,
+        debug::plugin,
     ));
 }
