@@ -14,6 +14,7 @@
 //! consider using a [fixed timestep](https://github.com/bevyengine/bevy/blob/main/examples/movement/physics_in_fixed_timestep.rs).
 
 use bevy::{prelude::*, window::PrimaryWindow};
+use bevy_ecs_tilemap::tiles::TilePos;
 
 use crate::{AppSystems, PausableSystems};
 
@@ -41,12 +42,28 @@ pub struct MovementController {
     pub max_speed: f32,
 }
 
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub struct FollowPath {
+    path: Vec<TilePos>,
+    current_index: usize,
+}
+
+impl FollowPath {
+    pub fn new(path: Vec<TilePos>) -> Self {
+        Self {
+            path,
+            current_index: 0,
+        }
+    }
+}
+
 impl Default for MovementController {
     fn default() -> Self {
         Self {
             intent: Vec2::ZERO,
             // 400 pixels per second is a nice default, but we can still vary this per character.
-            max_speed: 400.0,
+            max_speed: 32.0,
         }
     }
 }

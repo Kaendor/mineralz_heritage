@@ -1,4 +1,7 @@
+use std::time::Duration;
+
 use bevy::{
+    color::palettes,
     picking::{
         PickingSystems,
         backend::{HitData, PointerHits},
@@ -9,13 +12,19 @@ use bevy::{
 use bevy_ecs_tilemap::{
     TilemapPlugin,
     anchor::TilemapAnchor,
+    helpers::square_grid::neighbors::Neighbors,
     map::{TilemapGridSize, TilemapSize, TilemapTileSize, TilemapType},
-    tiles::{TilePos, TileStorage},
+    tiles::{TileColor, TilePos, TileStorage},
 };
 use bevy_pancam::PanCamPlugin;
+use bevy_tweening::{EntityCommandsTweeningExtensions, Tween};
 use leafwing_input_manager::Actionlike;
+use pathfinding::prelude::astar;
 
-use crate::demo::player::CursorPos;
+use crate::demo::{
+    movement::{FollowPath, MovementController},
+    player::{CursorPos, Player},
+};
 
 #[derive(Actionlike, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
 pub enum Action {
@@ -29,6 +38,7 @@ pub fn plugin(app: &mut App) {
         tilemap_picking_hits.in_set(PickingSystems::Backend),
     );
     app.add_plugins((TilemapPlugin, PanCamPlugin::default()));
+    app.add_observer(on_right_click_move_player);
 }
 
 /// Picking backend for tilemaps
@@ -103,5 +113,55 @@ pub fn tilemap_picking_hits(
             picks,
             camera.order as f32,
         ));
+    }
+}
+
+fn on_right_click_move_player(
+    trigger: On<Pointer<Press>>,
+    mut commands: Commands,
+    mut tiles: Query<(&mut TileColor, &TilePos)>,
+    mut player: Query<(Entity, &TilePos, &mut MovementController), With<Player>>,
+    tilemap_q: Query<(
+        &TilemapSize,
+        &TilemapGridSize,
+        &TilemapTileSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
+) {
+    let pointer = trigger.event();
+    let Ok((player_entity, from, movements)) = player.single() else {
+        return;
+    };
+    let Ok((map_size, grid_size, tile_size, map_type, anchor)) = tilemap_q.single() else {
+        return;
+    };
+
+    let PointerButton::Secondary = pointer.button else {
+        return;
+    };
+
+    let Ok((mut tile_color, tile_pos)) = tiles.get_mut(trigger.event_target()) else {
+        return;
+    };
+
+    tile_color.0 = palettes::tailwind::RED_500.into();
+
+    let successors = |p: &TilePos| -> Vec<(TilePos, u32)> {
+        Neighbors::get_square_neighboring_positions(p, map_size, true)
+            .iter()
+            .map(|a| (*a, 1))
+            .collect()
+    };
+    let heuristic =
+        |p: &TilePos| -> u32 { UVec2::from(*p).chebyshev_distance(UVec2::from(*tile_pos)) };
+    let success = |p: &TilePos| -> bool { *p == *tile_pos };
+    let path = astar(from, successors, heuristic, success);
+
+    if let Some(path) = path {
+        info!("Path found: {path:?}");
+        commands
+            .entity(player_entity)
+            .insert(FollowPath::new(path.0));
     }
 }

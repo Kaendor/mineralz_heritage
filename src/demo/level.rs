@@ -60,8 +60,6 @@ pub fn spawn_level(
                 .observe(recolor_on::<Pointer<Over>>(Color::BLACK))
                 .observe(recolor_on::<Pointer<Out>>(Color::WHITE))
                 .observe(recolor_on::<Pointer<Release>>(Color::WHITE))
-                .observe(on_right_click_move_player)
-                .observe(on_left_click)
                 .id();
 
             storage.set(&pos, tile_entity);
@@ -122,45 +120,6 @@ fn on_left_click(trigger: On<Pointer<Press>>, mut tiles: Query<&mut TileColor>) 
         }
         PointerButton::Middle | PointerButton::Secondary => {}
     }
-}
-
-fn on_right_click_move_player(
-    trigger: On<Pointer<Press>>,
-    mut commands: Commands,
-    mut tiles: Query<(&mut TileColor, &TilePos)>,
-    player: Query<Entity, With<Player>>,
-    tilemap_q: Query<(
-        &TilemapSize,
-        &TilemapGridSize,
-        &TilemapTileSize,
-        &TilemapType,
-        &TilemapAnchor,
-    )>,
-) {
-    let pointer = trigger.event();
-    let Ok(player_entity) = player.single() else {
-        return;
-    };
-    let Ok((map_size, grid_size, tile_size, map_type, anchor)) = tilemap_q.single() else {
-        return;
-    };
-
-    let PointerButton::Secondary = pointer.button else {
-        return;
-    };
-
-    let Ok((mut tile_color, tile_pos)) = tiles.get_mut(trigger.event_target()) else {
-        return;
-    };
-
-    tile_color.0 = palettes::tailwind::RED_500.into();
-    let end = tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
-
-    commands.entity(player_entity).move_to(
-        end.extend(0.1),
-        Duration::from_millis(300),
-        EaseFunction::QuadraticInOut,
-    );
 }
 
 fn recolor_on<E: EntityEvent + Clone + Reflect>(
