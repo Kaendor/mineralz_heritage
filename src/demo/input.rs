@@ -158,7 +158,7 @@ pub fn on_left_click_spawn_rock(
     // corner shared by those tiles, i.e. half a grid cell up and to the right
     // of the clicked tile's center.
     let tile_center =
-        tile_pos.center_in_world(&map_size, grid_size, tile_size, map_type, map_anchor);
+        tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, map_anchor);
     let rock_world_position = tile_center + Vec2::new(grid_size.x, grid_size.y) / 2.0;
 
     let rock_entity = commands
