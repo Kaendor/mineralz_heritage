@@ -10,9 +10,15 @@ use bevy_ecs_tilemap::{
 };
 
 use crate::{
-    demo::player::{PlayerAssets, player},
+    demo::{
+        input::{on_left_click_spawn_rock, on_right_click_move_player},
+        level::map::Occupancy,
+        player::{PlayerAssets, player},
+    },
     screens::Screen,
 };
+
+pub mod map;
 
 pub(super) fn plugin(app: &mut App) {}
 
@@ -25,6 +31,10 @@ pub struct LevelAssets {
     #[asset(path = "images/tiles.png")]
     #[asset(image(sampler(filter = nearest)))]
     tiles: Handle<Image>,
+
+    #[asset(path = "images/rock.png")]
+    #[asset(image(sampler(filter = nearest)))]
+    pub rock: Handle<Image>,
 }
 
 /// A system that spawns the main level.
@@ -50,6 +60,8 @@ pub fn spawn_level(
                     },
                     Pickable::default(),
                 ))
+                .observe(on_left_click_spawn_rock)
+                .observe(on_right_click_move_player)
                 .observe(recolor_on::<Pointer<Over>>(Color::BLACK))
                 .observe(recolor_on::<Pointer<Out>>(Color::WHITE))
                 .observe(recolor_on::<Pointer<Release>>(Color::WHITE))
@@ -72,6 +84,7 @@ pub fn spawn_level(
         &map_type,
         &TilemapAnchor::Center,
     );
+    let mut occupancy = Occupancy::new(map_size);
 
     let level = commands
         .spawn((
@@ -79,13 +92,20 @@ pub fn spawn_level(
             Transform::default(),
             Visibility::default(),
             DespawnOnExit(Screen::Gameplay),
-            children![(
-                player(&player_assets),
-                player_tile_position,
-                Transform::from_translation(player_world_position.extend(0.1))
-            )],
         ))
         .id();
+
+    let player = commands
+        .spawn((
+            player(&player_assets),
+            player_tile_position,
+            Transform::from_translation(player_world_position.extend(0.1)),
+            ChildOf(level),
+        ))
+        .id();
+
+    occupancy.occupy(player_tile_position, UVec2::ONE, player);
+    commands.insert_resource(occupancy);
 
     commands.entity(tilemap).insert((
         ChildOf(level),

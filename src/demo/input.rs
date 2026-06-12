@@ -19,6 +19,7 @@ use leafwing_input_manager::Actionlike;
 use pathfinding::prelude::astar;
 
 use crate::demo::{
+    level::{LevelAssets, map::Occupancy},
     movement::FollowPath,
     player::{CursorPos, Player},
 };
@@ -35,7 +36,6 @@ pub fn plugin(app: &mut App) {
         tilemap_picking_hits.in_set(PickingSystems::Backend),
     );
     app.add_plugins((TilemapPlugin, PanCamPlugin::default()));
-    app.add_observer(on_right_click_move_player);
 }
 
 /// Picking backend for tilemaps
@@ -113,12 +113,76 @@ pub fn tilemap_picking_hits(
     }
 }
 
-fn on_right_click_move_player(
+pub fn on_left_click_spawn_rock(
+    trigger: On<Pointer<Press>>,
+    mut commands: Commands,
+    mut tiles: Query<(&mut TileColor, &TilePos)>,
+    player: Query<(Entity, &TilePos), With<Player>>,
+    assets: Option<Res<LevelAssets>>,
+    tilemap_q: Query<(
+        &TilemapSize,
+        &TilemapGridSize,
+        &TilemapTileSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
+    mut occupancy: ResMut<Occupancy>,
+) {
+    let pointer = trigger.event();
+    let Ok((player_entity, from)) = player.single() else {
+        return;
+    };
+    let Ok((map_size, grid_size, tile_size, map_type, map_anchor)) = tilemap_q.single() else {
+        return;
+    };
+    let Some(assets) = assets else {
+        return;
+    };
+
+    let PointerButton::Primary = pointer.button else {
+        return;
+    };
+
+    let Ok((mut tile_color, tile_pos)) = tiles.get_mut(trigger.event_target()) else {
+        return;
+    };
+
+    // FIXME: maybe off by one error
+    let rock_footprint = UVec2::new(2, 2);
+
+    if !occupancy.is_free_at(*tile_pos, rock_footprint) {
+        warn!("Spot occupied: {tile_pos:?}");
+        return;
+    }
+
+    tile_color.0 = palettes::tailwind::GREEN_500.into();
+
+    // The clicked tile is the bottom-left of the 2x2 footprint, covering
+    // (x, y), (x+1, y), (x, y+1), (x+1, y+1). A 2x2 object is centered on the
+    // corner shared by those tiles, i.e. half a grid cell up and to the right
+    // of the clicked tile's center.
+    let tile_center =
+        tile_pos.center_in_world(&map_size, &grid_size, &tile_size, &map_type, &map_anchor);
+    let rock_world_position = tile_center + Vec2::new(grid_size.x, grid_size.y) / 2.0;
+
+    let rock_entity = commands
+        .spawn((
+            Name::new("Rock"),
+            tile_pos.clone(),
+            Sprite::from_image(assets.rock.clone()),
+            Transform::from_translation(rock_world_position.extend(0.2)),
+        ))
+        .id();
+    occupancy.occupy(*tile_pos, rock_footprint, rock_entity);
+}
+
+pub fn on_right_click_move_player(
     trigger: On<Pointer<Press>>,
     mut commands: Commands,
     mut tiles: Query<(&mut TileColor, &TilePos)>,
     player: Query<(Entity, &TilePos), With<Player>>,
     tilemap_q: Query<&TilemapSize>,
+    occupancy: Res<Occupancy>,
 ) {
     let pointer = trigger.event();
     let Ok((player_entity, from)) = player.single() else {
@@ -139,8 +203,9 @@ fn on_right_click_move_player(
     tile_color.0 = palettes::tailwind::RED_500.into();
 
     let successors = |p: &TilePos| -> Vec<(TilePos, u32)> {
-        Neighbors::get_square_neighboring_positions(p, map_size, true)
+        Neighbors::get_square_neighboring_positions(p, map_size, false)
             .iter()
+            .filter(|t| occupancy.is_free_at(**t, UVec2::ONE))
             .map(|a| (*a, 1))
             .collect()
     };
