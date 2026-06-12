@@ -20,7 +20,7 @@ use crate::{
 
 pub mod map;
 
-pub(super) fn plugin(app: &mut App) {}
+pub(super) fn plugin(_app: &mut App) {}
 
 #[derive(Resource, Clone, Reflect, AssetCollection)]
 #[reflect(Resource)]

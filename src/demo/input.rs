@@ -35,7 +35,7 @@ pub fn plugin(app: &mut App) {
         PreUpdate,
         tilemap_picking_hits.in_set(PickingSystems::Backend),
     );
-    app.add_plugins((TilemapPlugin, PanCamPlugin::default()));
+    app.add_plugins((TilemapPlugin, PanCamPlugin));
 }
 
 /// Picking backend for tilemaps
@@ -117,7 +117,6 @@ pub fn on_left_click_spawn_rock(
     trigger: On<Pointer<Press>>,
     mut commands: Commands,
     mut tiles: Query<(&mut TileColor, &TilePos)>,
-    player: Query<(Entity, &TilePos), With<Player>>,
     assets: Option<Res<LevelAssets>>,
     tilemap_q: Query<(
         &TilemapSize,
@@ -129,9 +128,6 @@ pub fn on_left_click_spawn_rock(
     mut occupancy: ResMut<Occupancy>,
 ) {
     let pointer = trigger.event();
-    let Ok((player_entity, from)) = player.single() else {
-        return;
-    };
     let Ok((map_size, grid_size, tile_size, map_type, map_anchor)) = tilemap_q.single() else {
         return;
     };
@@ -162,13 +158,13 @@ pub fn on_left_click_spawn_rock(
     // corner shared by those tiles, i.e. half a grid cell up and to the right
     // of the clicked tile's center.
     let tile_center =
-        tile_pos.center_in_world(&map_size, &grid_size, &tile_size, &map_type, &map_anchor);
+        tile_pos.center_in_world(&map_size, grid_size, tile_size, map_type, map_anchor);
     let rock_world_position = tile_center + Vec2::new(grid_size.x, grid_size.y) / 2.0;
 
     let rock_entity = commands
         .spawn((
             Name::new("Rock"),
-            tile_pos.clone(),
+            *tile_pos,
             Sprite::from_image(assets.rock.clone()),
             Transform::from_translation(rock_world_position.extend(0.2)),
         ))
