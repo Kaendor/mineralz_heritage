@@ -198,6 +198,8 @@ pub fn on_right_click_move_player(
 
     tile_color.0 = palettes::tailwind::RED_500.into();
 
+    let is_tile_free = occupancy.is_free_at(*tile_pos, UVec2::ONE);
+
     let successors = |p: &TilePos| -> Vec<(TilePos, u32)> {
         Neighbors::get_square_neighboring_positions(p, map_size, false)
             .iter()
@@ -205,9 +207,23 @@ pub fn on_right_click_move_player(
             .map(|a| (*a, 1))
             .collect()
     };
-    let heuristic =
-        |p: &TilePos| -> u32 { UVec2::from(*p).chebyshev_distance(UVec2::from(*tile_pos)) };
-    let success = |p: &TilePos| -> bool { *p == *tile_pos };
+    let heuristic = |p: &TilePos| -> u32 {
+        let dist = UVec2::from(*p).chebyshev_distance(UVec2::from(*tile_pos));
+        if is_tile_free {
+            dist
+        } else {
+            dist.saturating_sub(1)
+        }
+    };
+
+    let success = |p: &TilePos| -> bool {
+        if is_tile_free {
+            *p == *tile_pos
+        } else {
+            UVec2::from(*p).chebyshev_distance(UVec2::from(*tile_pos)) == 1
+        }
+    };
+
     let path = astar(from, successors, heuristic, success);
 
     if let Some(path) = path {
