@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 use bevy::{
     color::palettes,
     picking::{
