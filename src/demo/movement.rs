@@ -13,16 +13,17 @@
 //! purposes. If you want to move the player in a smoother way,
 //! consider using a [fixed timestep](https://github.com/bevyengine/bevy/blob/main/examples/movement/physics_in_fixed_timestep.rs).
 
-use std::collections::VecDeque;
-
-use bevy::{ecs::system::entity_command::insert, prelude::*, window::PrimaryWindow};
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_ecs_tilemap::{
     anchor::TilemapAnchor,
     map::{TilemapGridSize, TilemapSize, TilemapTileSize, TilemapType},
     tiles::TilePos,
 };
 
-use crate::{AppSystems, PausableSystems};
+use crate::{
+    AppSystems, PausableSystems,
+    demo::commands::{FollowPath, NextCommand},
+};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
@@ -32,7 +33,6 @@ pub(super) fn plugin(app: &mut App) {
             .in_set(AppSystems::Update)
             .in_set(PausableSystems),
     );
-    app.add_observer(process_command_queue);
 }
 
 /// These are the movement parameters for our character controller.
@@ -51,87 +51,6 @@ pub struct MovementController {
 
 #[derive(Component, Reflect)]
 pub struct Footprint(pub UVec2);
-
-#[derive(Component, Reflect)]
-#[reflect(Component)]
-pub struct FollowPath {
-    path: Vec<TilePos>,
-    current_index: usize,
-}
-
-#[derive(Component, Reflect)]
-#[reflect(Component)]
-/// TODO: check is rock is near before performing mining operation
-pub struct MineOrder {
-    pub target: Entity,
-}
-
-impl From<Entity> for MineOrder {
-    fn from(value: Entity) -> Self {
-        Self { target: value }
-    }
-}
-
-#[derive(Component, Reflect)]
-#[reflect(Component)]
-pub enum PlayerCommand {
-    GoTo(FollowPath),
-    Mine(MineOrder),
-}
-
-#[derive(Component, Reflect)]
-#[reflect(Component)]
-pub struct CommandQueue(pub VecDeque<PlayerCommand>);
-
-impl CommandQueue {
-    pub fn new(commands: Vec<PlayerCommand>) -> Self {
-        Self(VecDeque::from_iter(commands))
-    }
-
-    pub fn add(&mut self, command: PlayerCommand) {
-        self.0.push_back(command);
-    }
-}
-
-#[derive(EntityEvent)]
-pub struct NextCommand(Entity);
-
-impl From<Entity> for NextCommand {
-    fn from(value: Entity) -> Self {
-        NextCommand(value)
-    }
-}
-
-// Process on event NextCommand
-fn process_command_queue(
-    on: On<NextCommand>,
-    mut commands: Commands,
-    mut commanded: Query<&mut CommandQueue>,
-) {
-    // If a command is running, do nothing
-    // if the queue is not empty and no command is running, apply next command
-
-    let Ok(mut command_queue) = commanded.get_mut(on.event_target()) else {
-        return;
-    };
-    let next_command = command_queue.0.pop_front();
-
-    let Some(next_command) = next_command else {
-        info!("No more commands");
-        return;
-    };
-
-    match next_command {
-        PlayerCommand::GoTo(follow_path) => {
-            commands.entity(on.event_target()).insert(follow_path);
-            info!("Start new path");
-        }
-        PlayerCommand::Mine(mine_order) => {
-            commands.entity(on.event_target()).insert(mine_order);
-            info!("Mine rock");
-        }
-    }
-}
 
 const ARRIVAL_THRESHOLD: f32 = 0.5;
 
@@ -157,7 +76,7 @@ fn follow_path(
     };
 
     for (entity, mut follow, mut controller, mut tile_pos, mut transform) in &mut player {
-        let Some(target_tile) = follow.path.get(follow.current_index).copied() else {
+        let Some(target_tile) = follow.next().copied() else {
             controller.intent = Vec2::ZERO;
             commands.entity(entity).remove::<FollowPath>();
             commands.entity(entity).trigger(NextCommand::from);
@@ -172,19 +91,10 @@ fn follow_path(
             // Snap to avoid drift, update the logical tile, advance.
             transform.translation = target_world.extend(transform.translation.z);
             *tile_pos = target_tile;
-            follow.current_index += 1;
+            follow.increment();
             controller.intent = Vec2::ZERO;
         } else {
             controller.intent = to_target.normalize_or_zero();
-        }
-    }
-}
-
-impl FollowPath {
-    pub fn new(path: Vec<TilePos>) -> Self {
-        Self {
-            path,
-            current_index: 0,
         }
     }
 }

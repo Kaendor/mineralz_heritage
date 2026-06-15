@@ -6,6 +6,7 @@
 use bevy::prelude::*;
 
 mod animation;
+mod commands;
 mod debug;
 mod input;
 pub mod level;
@@ -20,5 +21,6 @@ pub(super) fn plugin(app: &mut App) {
         player::plugin,
         debug::plugin,
         input::plugin,
+        commands::plugin,
     ));
 }
