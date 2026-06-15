@@ -35,10 +35,11 @@ impl Occupancy {
             for dy in 0..size.y {
                 let tile = TilePos::new(pos.x + dx, pos.y + dy);
 
-                if tile.x < self.size.x && tile.y < self.size.y {
-                    if let Some(entity) = self.cells[self.index(&tile)] {
-                        occupant = Some(entity);
-                    }
+                if tile.x < self.size.x
+                    && tile.y < self.size.y
+                    && let Some(entity) = self.cells[self.index(&tile)]
+                {
+                    occupant = Some(entity);
                 }
             }
         }
