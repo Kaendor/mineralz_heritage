@@ -1,47 +1,15 @@
 use std::collections::VecDeque;
 
 use bevy::prelude::*;
-use bevy_ecs_tilemap::tiles::TilePos;
+
+use crate::demo::commands::{mining::MineOrder, path_following::FollowPath};
+
+pub mod mining;
+pub mod path_following;
 
 pub fn plugin(app: &mut App) {
     app.add_observer(process_command_queue);
-}
-
-#[derive(Component, Reflect)]
-#[reflect(Component)]
-pub struct FollowPath {
-    path: Vec<TilePos>,
-    current_index: usize,
-}
-
-impl FollowPath {
-    pub fn next(&self) -> Option<&TilePos> {
-        self.path.get(self.current_index)
-    }
-
-    pub fn increment(&mut self) {
-        self.current_index += 1;
-    }
-
-    pub fn new(path: Vec<TilePos>) -> Self {
-        Self {
-            path,
-            current_index: 0,
-        }
-    }
-}
-
-#[derive(Component, Reflect)]
-#[reflect(Component)]
-/// TODO: check is rock is near before performing mining operation
-pub struct MineOrder {
-    pub target: Entity,
-}
-
-impl From<Entity> for MineOrder {
-    fn from(value: Entity) -> Self {
-        Self { target: value }
-    }
+    app.add_plugins((mining::plugin, path_following::plugin));
 }
 
 #[derive(Component, Reflect)]

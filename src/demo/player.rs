@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 use bevy_asset_loader::asset_collection::AssetCollection;
 
-use crate::demo::movement::{MovementController, ScreenWrap};
+use crate::demo::commands::path_following::MovementController;
 
 pub(super) fn plugin(app: &mut App) {
     app.init_resource::<CursorPos>();
@@ -48,7 +48,6 @@ pub fn player(player_assets: &PlayerAssets) -> impl Bundle {
         Name::new("Player"),
         Player,
         Sprite::from_image(player_assets.player.clone()),
-        ScreenWrap,
         MovementController::default(),
     )
 }

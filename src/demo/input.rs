@@ -19,7 +19,9 @@ use leafwing_input_manager::Actionlike;
 use pathfinding::prelude::astar;
 
 use crate::demo::{
-    commands::{CommandQueue, FollowPath, MineOrder, NextCommand, PlayerCommand},
+    commands::{
+        CommandQueue, NextCommand, PlayerCommand, mining::MineOrder, path_following::FollowPath,
+    },
     level::{LevelAssets, map::Occupancy},
     movement::Footprint,
     player::{CursorPos, Player},
