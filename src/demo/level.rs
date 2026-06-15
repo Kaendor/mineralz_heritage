@@ -11,7 +11,7 @@ use bevy_ecs_tilemap::{
 
 use crate::{
     demo::{
-        input::{on_left_click_spawn_rock, on_right_click_move_player},
+        input::{on_left_click_spawn_rock, on_right_click_request_actions},
         level::map::Occupancy,
         player::{PlayerAssets, player},
     },
@@ -61,7 +61,7 @@ pub fn spawn_level(
                     Pickable::default(),
                 ))
                 .observe(on_left_click_spawn_rock)
-                .observe(on_right_click_move_player)
+                .observe(on_right_click_request_actions)
                 .observe(recolor_on::<Pointer<Over>>(Color::BLACK))
                 .observe(recolor_on::<Pointer<Out>>(Color::WHITE))
                 .observe(recolor_on::<Pointer<Release>>(Color::WHITE))

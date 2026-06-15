@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use bevy::{
     color::palettes,
     picking::{
@@ -20,7 +22,7 @@ use pathfinding::prelude::astar;
 
 use crate::demo::{
     level::{LevelAssets, map::Occupancy},
-    movement::FollowPath,
+    movement::{CommandQueue, FollowPath, Footprint, NextCommand, PlayerCommand},
     player::{CursorPos, Player},
 };
 
@@ -167,12 +169,13 @@ pub fn on_left_click_spawn_rock(
             *tile_pos,
             Sprite::from_image(assets.rock.clone()),
             Transform::from_translation(rock_world_position.extend(0.2)),
+            Footprint(rock_footprint),
         ))
         .id();
     occupancy.occupy(*tile_pos, rock_footprint, rock_entity);
 }
 
-pub fn on_right_click_move_player(
+pub fn on_right_click_request_actions(
     trigger: On<Pointer<Press>>,
     mut commands: Commands,
     mut tiles: Query<(&mut TileColor, &TilePos)>,
@@ -200,10 +203,15 @@ pub fn on_right_click_move_player(
 
     let path = create_path(from, tile_pos, map_size, &occupancy);
 
+    // TODO: if target is occupied, try to mine if its a rock
+
     if let Some(path) = path {
         commands
             .entity(player_entity)
-            .insert(FollowPath::new(path.0));
+            .insert(CommandQueue::new(vec![PlayerCommand::GoTo(
+                FollowPath::new(path.0),
+            )]))
+            .trigger(NextCommand::from);
     }
 }
 
