@@ -22,7 +22,7 @@ use pathfinding::prelude::astar;
 
 use crate::demo::{
     level::{LevelAssets, map::Occupancy},
-    movement::{CommandQueue, FollowPath, Footprint, NextCommand, PlayerCommand},
+    movement::{CommandQueue, FollowPath, Footprint, MineOrder, NextCommand, PlayerCommand},
     player::{CursorPos, Player},
 };
 
@@ -203,14 +203,23 @@ pub fn on_right_click_request_actions(
 
     let path = create_path(from, tile_pos, map_size, &occupancy);
 
-    // TODO: if target is occupied, try to mine if its a rock
+    let entry = occupancy.entry(tile_pos, UVec2::ONE);
 
+    let mut command_queue = CommandQueue::new(vec![]);
+
+    // first move, then mine
     if let Some(path) = path {
+        command_queue.add(PlayerCommand::GoTo(FollowPath::new(path.0)));
+    }
+
+    if let Some(rock) = entry {
+        command_queue.add(PlayerCommand::Mine(MineOrder::from(rock)));
+    }
+
+    if !command_queue.0.is_empty() {
         commands
             .entity(player_entity)
-            .insert(CommandQueue::new(vec![PlayerCommand::GoTo(
-                FollowPath::new(path.0),
-            )]))
+            .insert(command_queue)
             .trigger(NextCommand::from);
     }
 }

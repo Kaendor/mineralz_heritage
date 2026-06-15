@@ -61,8 +61,15 @@ pub struct FollowPath {
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
+/// TODO: check is rock is near before performing mining operation
 pub struct MineOrder {
     pub target: Entity,
+}
+
+impl From<Entity> for MineOrder {
+    fn from(value: Entity) -> Self {
+        Self { target: value }
+    }
 }
 
 #[derive(Component, Reflect)]
@@ -79,6 +86,10 @@ pub struct CommandQueue(pub VecDeque<PlayerCommand>);
 impl CommandQueue {
     pub fn new(commands: Vec<PlayerCommand>) -> Self {
         Self(VecDeque::from_iter(commands))
+    }
+
+    pub fn add(&mut self, command: PlayerCommand) {
+        self.0.push_back(command);
     }
 }
 
