@@ -47,6 +47,16 @@ impl Occupancy {
         occupant
     }
 
+    pub fn free(&mut self, entity: Entity) {
+        for cell in self.cells.iter_mut() {
+            if let Some(to_free) = cell
+                && *to_free == entity
+            {
+                cell.take();
+            }
+        }
+    }
+
     pub fn occupy(&mut self, pos: TilePos, size: UVec2, entity: Entity) {
         for dx in 0..size.x {
             for dy in 0..size.y {

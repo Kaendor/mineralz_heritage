@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use bevy::prelude::*;
 
-use crate::demo::commands::{mining::MineOrder, path_following::FollowPath};
+use crate::demo::commands::{mining::MiningOrder, path_following::FollowPath};
 
 pub mod mining;
 pub mod path_following;
@@ -16,7 +16,7 @@ pub fn plugin(app: &mut App) {
 #[reflect(Component)]
 pub enum PlayerCommand {
     GoTo(FollowPath),
-    Mine(MineOrder),
+    Mine(MiningOrder),
 }
 
 #[derive(Component, Reflect)]

@@ -20,7 +20,9 @@ use pathfinding::prelude::astar;
 
 use crate::demo::{
     commands::{
-        CommandQueue, NextCommand, PlayerCommand, mining::MineOrder, path_following::FollowPath,
+        CommandQueue, NextCommand, PlayerCommand,
+        mining::{Health, MiningOrder},
+        path_following::FollowPath,
     },
     level::{LevelAssets, map::Occupancy},
     movement::Footprint,
@@ -171,6 +173,7 @@ pub fn on_left_click_spawn_rock(
             Sprite::from_image(assets.rock.clone()),
             Transform::from_translation(rock_world_position.extend(0.2)),
             Footprint(rock_footprint),
+            Health::new(5.0),
         ))
         .id();
     occupancy.occupy(*tile_pos, rock_footprint, rock_entity);
@@ -214,7 +217,7 @@ pub fn on_right_click_request_actions(
     }
 
     if let Some(rock) = entry {
-        command_queue.add(PlayerCommand::Mine(MineOrder::from(rock)));
+        command_queue.add(PlayerCommand::Mine(MiningOrder::from(rock)));
     }
 
     if !command_queue.0.is_empty() {

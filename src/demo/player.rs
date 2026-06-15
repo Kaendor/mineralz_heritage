@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 use bevy_asset_loader::asset_collection::AssetCollection;
 
-use crate::demo::commands::path_following::MovementController;
+use crate::demo::commands::{mining::MiningPower, path_following::MovementController};
 
 pub(super) fn plugin(app: &mut App) {
     app.init_resource::<CursorPos>();
@@ -49,6 +49,7 @@ pub fn player(player_assets: &PlayerAssets) -> impl Bundle {
         Player,
         Sprite::from_image(player_assets.player.clone()),
         MovementController::default(),
+        MiningPower::new(2.0),
     )
 }
 
