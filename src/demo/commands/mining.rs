@@ -3,7 +3,10 @@ use bevy::prelude::*;
 use crate::demo::{commands::NextCommand, level::map::Occupancy};
 
 pub fn plugin(app: &mut App) {
-    app.add_systems(Update, process_mining_order);
+    app.add_systems(
+        Update,
+        process_mining_order.run_if(resource_exists::<Occupancy>),
+    );
 }
 
 #[derive(Component, Reflect)]
