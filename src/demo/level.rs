@@ -18,6 +18,7 @@ use crate::{
     screens::Screen,
 };
 
+pub mod enemies;
 pub mod map;
 
 pub(super) fn plugin(_app: &mut App) {}
@@ -35,6 +36,10 @@ pub struct LevelAssets {
     #[asset(path = "images/rock.png")]
     #[asset(image(sampler(filter = nearest)))]
     pub rock: Handle<Image>,
+
+    #[asset(path = "images/enemy_sprite.png")]
+    #[asset(image(sampler(filter = nearest)))]
+    pub enemy: Handle<Image>,
 }
 
 /// A system that spawns the main level.

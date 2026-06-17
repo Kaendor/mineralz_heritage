@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{color::palettes, prelude::*};
 use bevy_ecs_tilemap::prelude::*;
 
 use crate::{AppSystems, PausableSystems, demo::commands::NextCommand};
@@ -111,5 +111,33 @@ fn apply_movement(
     for (controller, mut transform) in &mut movement_query {
         let velocity = controller.max_speed * controller.intent;
         transform.translation += velocity.extend(0.0) * time.delta_secs();
+    }
+}
+
+pub fn display_paths(
+    paths: Query<&FollowPath>,
+    mut gizmos: Gizmos,
+    tilemap_q: Query<(
+        &TilemapSize,
+        &TilemapGridSize,
+        &TilemapTileSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
+) {
+    let Ok((map_size, grid_size, tile_size, map_type, anchor)) = tilemap_q.single() else {
+        return;
+    };
+
+    for path in &paths {
+        gizmos.linestrip_2d(
+            path.path.iter().map(|n| {
+                let translation =
+                    n.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
+
+                translation
+            }),
+            palettes::tailwind::PURPLE_500,
+        );
     }
 }
