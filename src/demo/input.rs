@@ -1,4 +1,5 @@
 use bevy::{
+    camera::primitives::Aabb,
     color::palettes,
     picking::{
         PickingSystems,
@@ -17,15 +18,15 @@ use bevy_ecs_tilemap::{
 use bevy_pancam::PanCamPlugin;
 use leafwing_input_manager::Actionlike;
 use pathfinding::prelude::astar;
+use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 
 use crate::demo::{
     commands::{
         CommandQueue, NextCommand, PlayerCommand,
         mining::{Health, MiningOrder},
-        path_following::FollowPath,
+        path_following::{FollowPath, Obstacle},
     },
     level::{LevelAssets, map::Occupancy},
-    movement::Footprint,
     player::{CursorPos, Player},
 };
 
@@ -172,8 +173,9 @@ pub fn on_left_click_spawn_rock(
             *tile_pos,
             Sprite::from_image(assets.rock.clone()),
             Transform::from_translation(rock_world_position.extend(0.2)),
-            Footprint(rock_footprint),
             Health::new(5.0),
+            Obstacle,
+            Aabb::from_min_max(Vec3::ZERO, Vec3::splat(32.0).with_z(0.0)),
         ))
         .id();
     occupancy.occupy(*tile_pos, rock_footprint, rock_entity);
@@ -183,15 +185,29 @@ pub fn on_right_click_request_actions(
     trigger: On<Pointer<Press>>,
     mut commands: Commands,
     mut tiles: Query<(&mut TileColor, &TilePos)>,
-    player: Query<(Entity, &TilePos), With<Player>>,
-    tilemap_q: Query<&TilemapSize>,
+    player: Query<(Entity, &Transform), With<Player>>,
+    tilemap_q: Query<(
+        &TilemapSize,
+        &TilemapGridSize,
+        &TilemapTileSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
     occupancy: Res<Occupancy>,
+    navmeshes: Res<Assets<NavMesh>>,
+    navmesh: Query<&ManagedNavMesh>,
 ) {
     let pointer = trigger.event();
-    let Ok((player_entity, from)) = player.single() else {
+    let Ok((player_entity, from_world)) = player.single() else {
         return;
     };
-    let Ok(map_size) = tilemap_q.single() else {
+    let Ok((map_size, grid_size, tile_size, map_type, anchor)) = tilemap_q.single() else {
+        return;
+    };
+    let Ok(navmesh) = navmesh.single() else {
+        return;
+    };
+    let Some(navmesh) = navmeshes.get(navmesh) else {
         return;
     };
 
@@ -202,19 +218,20 @@ pub fn on_right_click_request_actions(
     let Ok((mut tile_color, tile_pos)) = tiles.get_mut(trigger.event_target()) else {
         return;
     };
+    // let from_world = from.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
+    let to = tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
 
     tile_color.0 = palettes::tailwind::RED_500.into();
-
-    let path = create_path(from, tile_pos, map_size, &occupancy);
 
     let entry = occupancy.entry(tile_pos, UVec2::ONE);
 
     let mut command_queue = CommandQueue::new(vec![]);
 
-    // first move, then mine
-    if let Some(path) = path {
-        command_queue.add(PlayerCommand::GoTo(FollowPath::new(path.0)));
+    if let Some(path) = navmesh.transformed_path(from_world.translation, to.extend(0.0)) {
+        command_queue.add(PlayerCommand::GoTo(FollowPath::new(path.path)));
     }
+    // first move, then mine
+    // if let Some(path) = path {}
 
     if let Some(rock) = entry {
         command_queue.add(PlayerCommand::Mine(MiningOrder::from(rock)));

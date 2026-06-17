@@ -1,9 +1,16 @@
-use bevy::{color::palettes, prelude::*};
+use std::iter;
+
+use bevy::{camera::primitives::Aabb, color::palettes, prelude::*};
 use bevy_ecs_tilemap::prelude::*;
+use vleue_navigator::{VleueNavigatorPlugin, prelude::NavmeshUpdaterPlugin};
 
 use crate::{AppSystems, PausableSystems, demo::commands::NextCommand};
 
 pub fn plugin(app: &mut App) {
+    app.add_plugins((
+        VleueNavigatorPlugin,
+        NavmeshUpdaterPlugin::<Aabb, Obstacle>::default(),
+    ));
     app.add_systems(
         Update,
         (follow_path, apply_movement)
@@ -15,8 +22,12 @@ pub fn plugin(app: &mut App) {
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
+pub struct Obstacle;
+
+#[derive(Component, Reflect, Debug)]
+#[reflect(Component)]
 pub struct FollowPath {
-    path: Vec<TilePos>,
+    path: Vec<Vec3>,
     current_index: usize,
 }
 
@@ -42,7 +53,7 @@ impl Default for MovementController {
 }
 
 impl FollowPath {
-    pub fn next(&self) -> Option<&TilePos> {
+    pub fn next(&self) -> Option<&Vec3> {
         self.path.get(self.current_index)
     }
 
@@ -50,7 +61,7 @@ impl FollowPath {
         self.current_index += 1;
     }
 
-    pub fn new(path: Vec<TilePos>) -> Self {
+    pub fn new(path: Vec<Vec3>) -> Self {
         Self {
             path,
             current_index: 0,
@@ -61,13 +72,13 @@ impl FollowPath {
 const ARRIVAL_THRESHOLD: f32 = 0.5;
 fn follow_path(
     mut commands: Commands,
-    tilemap_q: Query<(
-        &TilemapSize,
-        &TilemapGridSize,
-        &TilemapTileSize,
-        &TilemapType,
-        &TilemapAnchor,
-    )>,
+    // tilemap_q: Query<(
+    //     &TilemapSize,
+    //     &TilemapGridSize,
+    //     &TilemapTileSize,
+    //     &TilemapType,
+    //     &TilemapAnchor,
+    // )>,
     mut player: Query<(
         Entity,
         &mut FollowPath,
@@ -76,30 +87,30 @@ fn follow_path(
         &mut Transform,
     )>,
 ) {
-    let Ok((map_size, grid_size, tile_size, map_type, anchor)) = tilemap_q.single() else {
-        return;
-    };
+    // let Ok((map_size, grid_size, tile_size, map_type, anchor)) = tilemap_q.single() else {
+    //     return;
+    // };
 
     for (entity, mut follow, mut controller, mut tile_pos, mut transform) in &mut player {
-        let Some(target_tile) = follow.next().copied() else {
+        let Some(target_world) = follow.next().copied() else {
             controller.intent = Vec2::ZERO;
             commands.entity(entity).remove::<FollowPath>();
             commands.entity(entity).trigger(NextCommand::from);
             continue;
         };
 
-        let target_world =
-            target_tile.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
-        let to_target = target_world - transform.translation.xy();
+        // let target_world =
+        //     target_tile.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
+        let to_target = target_world - transform.translation;
 
         if to_target.length() <= ARRIVAL_THRESHOLD {
             // Snap to avoid drift, update the logical tile, advance.
-            transform.translation = target_world.extend(transform.translation.z);
-            *tile_pos = target_tile;
+            transform.translation = target_world.with_z(transform.translation.z);
+            // *tile_pos = target_tile;
             follow.increment();
             controller.intent = Vec2::ZERO;
         } else {
-            controller.intent = to_target.normalize_or_zero();
+            controller.intent = to_target.xy().normalize_or_zero();
         }
     }
 }
@@ -115,28 +126,28 @@ fn apply_movement(
 }
 
 pub fn display_paths(
-    paths: Query<&FollowPath>,
+    paths: Query<(&Transform, &FollowPath)>,
     mut gizmos: Gizmos,
-    tilemap_q: Query<(
-        &TilemapSize,
-        &TilemapGridSize,
-        &TilemapTileSize,
-        &TilemapType,
-        &TilemapAnchor,
-    )>,
+    // tilemap_q: Query<(
+    //     &TilemapSize,
+    //     &TilemapGridSize,
+    //     &TilemapTileSize,
+    //     &TilemapType,
+    //     &TilemapAnchor,
+    // )>,
 ) {
-    let Ok((map_size, grid_size, tile_size, map_type, anchor)) = tilemap_q.single() else {
-        return;
-    };
+    // let Ok((map_size, grid_size, tile_size, map_type, anchor)) = tilemap_q.single() else {
+    //     return;
+    // };
 
-    for path in &paths {
+    for (position, path) in &paths {
         gizmos.linestrip_2d(
-            path.path.iter().map(|n| {
-                let translation =
-                    n.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
+            iter::once(position.translation.xy()).chain(path.path.iter().map(|n| {
+                // let translation =
+                //     n.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
 
-                translation
-            }),
+                n.xy()
+            })),
             palettes::tailwind::PURPLE_500,
         );
     }

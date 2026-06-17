@@ -1,6 +1,8 @@
 use bevy::prelude::*;
+use vleue_navigator::prelude::{ObstacleSource, PrimitiveObstacle};
 
 pub(super) fn plugin(_app: &mut App) {}
 
-#[derive(Component, Reflect)]
-pub struct Footprint(pub UVec2);
+/// World size of a single tile, in pixels. Must match the tilemap's
+/// `TilemapTileSize` (see `spawn_level`).
+const TILE_SIZE: f32 = 16.0;

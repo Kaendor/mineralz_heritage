@@ -63,8 +63,8 @@ fn process_command_queue(
 
     match next_command {
         PlayerCommand::GoTo(follow_path) => {
+            info!("Start new path: {follow_path:?}");
             commands.entity(on.event_target()).insert(follow_path);
-            info!("Start new path");
         }
         PlayerCommand::Mine(mine_order) => {
             commands.entity(on.event_target()).insert(mine_order);

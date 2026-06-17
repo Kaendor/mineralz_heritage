@@ -1,12 +1,16 @@
 //! Spawn the main level.
 
-use bevy::prelude::*;
+use bevy::{color::palettes, prelude::*};
 use bevy_asset_loader::asset_collection::AssetCollection;
 use bevy_ecs_tilemap::{
     TilemapBundle,
     anchor::TilemapAnchor,
     map::{TilemapSize, TilemapTexture, TilemapTileSize, TilemapType},
     tiles::{TileBundle, TileColor, TilePos, TileStorage},
+};
+use vleue_navigator::{
+    NavMeshDebug, Triangulation,
+    prelude::{NavMeshSettings, NavMeshUpdateMode},
 };
 
 use crate::{
@@ -104,13 +108,41 @@ pub fn spawn_level(
         .spawn((
             player(&player_assets),
             player_tile_position,
-            Transform::from_translation(player_world_position.extend(0.1)),
+            Transform::from_translation(player_world_position.extend(0.1))
+                .with_scale(Vec3::splat(10.0)),
             ChildOf(level),
         ))
         .id();
 
     occupancy.occupy(player_tile_position, UVec2::ONE, player);
     commands.insert_resource(occupancy);
+
+    // Outer boundary of the navmesh: the tilemap's AABB in navmesh-local space.
+    // `center_in_world` returns tile *centers* in the tilemap's local space (which
+    // is the navmesh space, since the tilemap transform isn't applied here), so
+    // push the two opposite corner tiles out by half a tile to reach the borders.
+    let half_tile = Vec2::new(tile_size.x, tile_size.y) / 2.0;
+    let min = TilePos::new(0, 0).center_in_world(
+        &map_size,
+        &grid_size,
+        &tile_size,
+        &map_type,
+        &TilemapAnchor::Center,
+    ) - half_tile;
+    let max = TilePos::new(map_size.x - 1, map_size.y - 1).center_in_world(
+        &map_size,
+        &grid_size,
+        &tile_size,
+        &map_type,
+        &TilemapAnchor::Center,
+    ) + half_tile;
+    // Counter-clockwise winding for the outer boundary.
+    let edges = vec![
+        Vec2::new(min.x, min.y),
+        Vec2::new(max.x, min.y),
+        Vec2::new(max.x, max.y),
+        Vec2::new(min.x, max.y),
+    ];
 
     commands.entity(tilemap).insert((
         ChildOf(level),
@@ -124,6 +156,15 @@ pub fn spawn_level(
             anchor: TilemapAnchor::Center,
             ..default()
         },
+        NavMeshSettings {
+            fixed: Triangulation::from_outer_edges(&edges),
+            agent_radius: tile_size.x / 3.0,
+            simplify: 0.02,
+            merge_steps: 2,
+            ..default()
+        },
+        NavMeshUpdateMode::Direct,
+        NavMeshDebug(palettes::tailwind::CYAN_500.into()),
     ));
 }
 

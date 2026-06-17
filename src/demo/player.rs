@@ -47,7 +47,11 @@ pub fn player(player_assets: &PlayerAssets) -> impl Bundle {
     (
         Name::new("Player"),
         Player,
-        Sprite::from_image(player_assets.player.clone()),
+        Sprite {
+            image: player_assets.player.clone(),
+            custom_size: Some(Vec2::ONE),
+            ..default()
+        },
         MovementController::default(),
         MiningPower::new(2.0),
     )
