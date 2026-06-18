@@ -218,8 +218,15 @@ pub fn on_right_click_request_actions(
     let Ok((mut tile_color, tile_pos)) = tiles.get_mut(trigger.event_target()) else {
         return;
     };
-    // let from_world = from.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
+
     let to = tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
+
+    // TODO: check tile position to have closest_tile
+    let Some(a) = navmesh.get().get_closest_point(to) else {
+        warn!("No closest point found");
+        return;
+    };
+    // let from_world = from.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
 
     tile_color.0 = palettes::tailwind::RED_500.into();
 
@@ -227,7 +234,7 @@ pub fn on_right_click_request_actions(
 
     let mut command_queue = CommandQueue::new(vec![]);
 
-    if let Some(path) = navmesh.transformed_path(from_world.translation, to.extend(0.0)) {
+    if let Some(path) = navmesh.transformed_path(from_world.translation, a.position().extend(1.0)) {
         command_queue.add(PlayerCommand::GoTo(FollowPath::new(path.path)));
     }
     // first move, then mine

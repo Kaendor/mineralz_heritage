@@ -108,8 +108,7 @@ pub fn spawn_level(
         .spawn((
             player(&player_assets),
             player_tile_position,
-            Transform::from_translation(player_world_position.extend(0.1))
-                .with_scale(Vec3::splat(10.0)),
+            Transform::from_translation(player_world_position.extend(0.1)),
             ChildOf(level),
         ))
         .id();
@@ -161,6 +160,7 @@ pub fn spawn_level(
             agent_radius: tile_size.x / 3.0,
             simplify: 0.02,
             merge_steps: 2,
+            default_search_delta: 8.0,
             ..default()
         },
         NavMeshUpdateMode::Direct,

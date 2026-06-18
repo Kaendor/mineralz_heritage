@@ -18,11 +18,14 @@ pub struct MiningOrder {
 
 #[derive(Component, Debug)]
 /// in HP by Seconds
-pub struct MiningPower(pub f32);
+pub struct MiningStats {
+    power: f32,
+    range: f32,
+}
 
-impl MiningPower {
-    pub fn new(power: f32) -> Self {
-        Self(power)
+impl MiningStats {
+    pub fn new(power: f32, range: f32) -> Self {
+        Self { power, range }
     }
 }
 
@@ -41,8 +44,8 @@ impl Health {
         self.current <= 0.0
     }
 
-    pub fn take_damage(&mut self, damages: &MiningPower) {
-        self.current -= damages.0
+    pub fn take_damage(&mut self, damages: &MiningStats) {
+        self.current -= damages.power
     }
 }
 
@@ -54,29 +57,35 @@ impl From<Entity> for MiningOrder {
 
 fn process_mining_order(
     mut commands: Commands,
-    miners: Query<(Entity, &mut MiningOrder, &MiningPower)>,
-    mut targets: Query<&mut Health>,
+    miners: Query<(Entity, &mut MiningOrder, &MiningStats, &Transform)>,
+    mut targets: Query<(&mut Health, &Transform)>,
     mut occupancy: ResMut<Occupancy>,
 ) {
-    for (miner, order, power) in &miners {
+    for (miner, order, power, m_transform) in &miners {
         // TODO: The order is over when the target is gone
         // The target is gone, when its hp are equal or below 0
-        let Ok(mut target) = targets.get_mut(order.target) else {
+        let Ok((mut target, t_transform)) = targets.get_mut(order.target) else {
             continue;
         };
 
-        info!("Damage rock for {power:?}");
-        target.take_damage(power);
+        let distance_to_target = t_transform.translation.distance(m_transform.translation);
 
-        if target.is_dead() {
-            info!("Target is dead");
-            commands
-                .entity(miner)
-                .remove::<MiningOrder>()
-                .trigger(NextCommand);
-            commands.entity(order.target).despawn();
-            occupancy.free(order.target);
-            // TODO: update occupancy
+        let target_in_range = distance_to_target <= power.range;
+
+        if target_in_range {
+            info!("Damage rock for {power:?}");
+            target.take_damage(power);
+
+            if target.is_dead() {
+                info!("Target is dead");
+                commands
+                    .entity(miner)
+                    .remove::<MiningOrder>()
+                    .trigger(NextCommand);
+                commands.entity(order.target).despawn();
+                occupancy.free(order.target);
+                // TODO: update occupancy
+            }
         }
     }
 }
