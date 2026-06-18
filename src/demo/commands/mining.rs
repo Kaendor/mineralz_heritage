@@ -1,10 +1,10 @@
-use bevy::prelude::*;
+use bevy::{color::palettes, prelude::*};
 use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 
 use crate::demo::{
     commands::{CommandQueue, NextCommand, PlayerCommand, path_following::FollowPath},
     level::map::Occupancy,
-    player::{CursorPos, Player},
+    player::Player,
 };
 
 pub fn plugin(app: &mut App) {
@@ -109,6 +109,11 @@ pub fn on_right_click_request_mining(
         .trigger(NextCommand::from);
 }
 
+fn surface_distance(miner: Vec2, rock_center: Vec2, footprint: Vec2) -> f32 {
+    let d = (miner - rock_center).abs() - footprint / 2.0; // (16,16) for a 2x2
+    d.max(Vec2::ZERO).length()
+}
+
 fn process_mining_order(
     mut commands: Commands,
     miners: Query<(Entity, &mut MiningOrder, &MiningStats, &Transform)>,
@@ -120,10 +125,13 @@ fn process_mining_order(
             continue;
         };
 
-        let distance_to_target = t_transform.translation.distance(m_transform.translation);
+        let distance_to_edge = surface_distance(
+            m_transform.translation.xy(),
+            t_transform.translation.xy(),
+            Vec2::splat(16.0),
+        );
 
-        // TODO: Use the rock surface and not the tile clicked. Use an observer on rocks
-        let target_in_range = distance_to_target <= power.range;
+        let target_in_range = distance_to_edge <= power.range;
 
         if target_in_range {
             info!("Damage rock for {power:?}");
@@ -139,5 +147,33 @@ fn process_mining_order(
                 occupancy.free(order.target);
             }
         }
+    }
+}
+
+pub fn display_mining_range(miners: Query<(&Transform, &MiningStats)>, mut gizmos: Gizmos) {
+    for (position, stats) in &miners {
+        gizmos.circle_2d(
+            position.translation.xy(),
+            stats.range,
+            palettes::tailwind::RED_500,
+        );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use bevy::math::Vec2;
+
+    use crate::demo::commands::mining::surface_distance;
+
+    #[test]
+    fn distance_to_surface() {
+        let agent_pos = Vec2::X;
+        let target_pos = Vec2::NEG_X;
+        let target_footprint = Vec2::ONE;
+
+        let distance = surface_distance(agent_pos, target_pos, target_footprint);
+
+        assert_eq!(distance, 1.5);
     }
 }

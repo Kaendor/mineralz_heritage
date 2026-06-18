@@ -5,7 +5,10 @@ use bevy::{
 };
 use bevy_inspector_egui::{bevy_egui::EguiPlugin, quick::WorldInspectorPlugin};
 
-use crate::{demo::commands::path_following::display_paths, screens::Screen};
+use crate::{
+    demo::commands::{mining::display_mining_range, path_following::display_paths},
+    screens::Screen,
+};
 
 pub(super) fn plugin(app: &mut App) {
     // Log `Screen` state transitions.
@@ -19,7 +22,10 @@ pub(super) fn plugin(app: &mut App) {
         toggle_debug_ui.run_if(input_just_pressed(TOGGLE_KEY)),
     );
 
-    app.add_systems(Update, (display_paths).run_if(debug_run_condition));
+    app.add_systems(
+        Update,
+        (display_paths, display_mining_range).run_if(debug_run_condition),
+    );
 }
 
 const TOGGLE_KEY: KeyCode = KeyCode::KeyD;
