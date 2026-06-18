@@ -23,7 +23,7 @@ use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 use crate::demo::{
     commands::{
         CommandQueue, NextCommand, PlayerCommand,
-        mining::{Health, MiningOrder},
+        mining::{Health, MiningOrder, on_right_click_request_mining},
         path_following::{FollowPath, Obstacle},
     },
     level::{LevelAssets, map::Occupancy},
@@ -176,7 +176,9 @@ pub fn on_left_click_spawn_rock(
             Health::new(5.0),
             Obstacle,
             Aabb::from_min_max(Vec3::ZERO, Vec3::splat(32.0).with_z(0.0)),
+            Pickable::default(),
         ))
+        .observe(on_right_click_request_mining)
         .id();
     occupancy.occupy(*tile_pos, rock_footprint, rock_entity);
 }
@@ -221,7 +223,9 @@ pub fn on_right_click_request_actions(
 
     let to = tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
 
+    // Check mining range in order to pick closest point
     // TODO: check tile position to have closest_tile
+    // Use the rock surface and not the tile clicked. Use an observer on rocks
     let Some(a) = navmesh.get().get_closest_point(to) else {
         warn!("No closest point found");
         return;
@@ -241,6 +245,8 @@ pub fn on_right_click_request_actions(
     // if let Some(path) = path {}
 
     if let Some(rock) = entry {
+        // FIXME: remove this when observer on rock is complete
+        return;
         command_queue.add(PlayerCommand::Mine(MiningOrder::from(rock)));
     }
 
@@ -250,39 +256,4 @@ pub fn on_right_click_request_actions(
             .insert(command_queue)
             .trigger(NextCommand::from);
     }
-}
-
-fn create_path(
-    from: &TilePos,
-    target: &TilePos,
-    map_size: &TilemapSize,
-    occupancy: &Occupancy,
-) -> Option<(Vec<TilePos>, u32)> {
-    let is_tile_free = occupancy.is_free_at(*target, UVec2::ONE);
-
-    let successors = |p: &TilePos| -> Vec<(TilePos, u32)> {
-        Neighbors::get_square_neighboring_positions(p, map_size, false)
-            .iter()
-            .filter(|t| occupancy.is_free_at(**t, UVec2::ONE))
-            .map(|a| (*a, 1))
-            .collect()
-    };
-    let heuristic = |p: &TilePos| -> u32 {
-        let dist = UVec2::from(*p).chebyshev_distance(UVec2::from(*target));
-        if is_tile_free {
-            dist
-        } else {
-            dist.saturating_sub(1)
-        }
-    };
-
-    let success = |p: &TilePos| -> bool {
-        if is_tile_free {
-            *p == *target
-        } else {
-            UVec2::from(*p).chebyshev_distance(UVec2::from(*target)) == 1
-        }
-    };
-
-    astar(from, successors, heuristic, success)
 }

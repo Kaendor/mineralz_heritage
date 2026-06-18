@@ -1,6 +1,11 @@
 use bevy::prelude::*;
+use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 
-use crate::demo::{commands::NextCommand, level::map::Occupancy};
+use crate::demo::{
+    commands::{CommandQueue, NextCommand, PlayerCommand, path_following::FollowPath},
+    level::map::Occupancy,
+    player::{CursorPos, Player},
+};
 
 pub fn plugin(app: &mut App) {
     app.add_systems(
@@ -55,6 +60,55 @@ impl From<Entity> for MiningOrder {
     }
 }
 
+pub fn on_right_click_request_mining(
+    trigger: On<Pointer<Press>>,
+    mut commands: Commands,
+    player: Query<(Entity, &Transform), With<Player>>,
+    navmeshes: Res<Assets<NavMesh>>,
+    navmesh: Query<&ManagedNavMesh>,
+    transforms: Query<&Transform>,
+) {
+    let PointerButton::Secondary = trigger.event().button else {
+        return;
+    };
+    let Ok(navmesh) = navmesh.single() else {
+        return;
+    };
+    let Some(navmesh) = navmeshes.get(navmesh) else {
+        return;
+    };
+    let Ok((p_entity, p_transform)) = player.single() else {
+        return;
+    };
+    let Ok(rock_position) = transforms.get(trigger.event_target()) else {
+        return;
+    };
+
+    let Some(path) = navmesh
+        .get()
+        .get_closest_point_towards(rock_position.translation.xy(), p_transform.translation.xy())
+        .and_then(|p| navmesh.transformed_path(p_transform.translation, p.position().extend(1.0)))
+    else {
+        warn!("No path found");
+        // TODO: add sound and/or visual cue
+        return;
+    };
+
+    // TODO: Check mining range in order to pick closest point
+    // TODO: check tile position to have closest_tile
+    // Use the rock surface and not the tile clicked. Use an observer on rocks
+
+    let mut command_queue = CommandQueue::new(vec![]);
+    command_queue.add(PlayerCommand::GoTo(FollowPath::new(path.path)));
+    command_queue.add(PlayerCommand::Mine(MiningOrder::from(
+        trigger.event_target(),
+    )));
+    commands
+        .entity(p_entity)
+        .insert(command_queue)
+        .trigger(NextCommand::from);
+}
+
 fn process_mining_order(
     mut commands: Commands,
     miners: Query<(Entity, &mut MiningOrder, &MiningStats, &Transform)>,
@@ -62,14 +116,13 @@ fn process_mining_order(
     mut occupancy: ResMut<Occupancy>,
 ) {
     for (miner, order, power, m_transform) in &miners {
-        // TODO: The order is over when the target is gone
-        // The target is gone, when its hp are equal or below 0
         let Ok((mut target, t_transform)) = targets.get_mut(order.target) else {
             continue;
         };
 
         let distance_to_target = t_transform.translation.distance(m_transform.translation);
 
+        // TODO: Use the rock surface and not the tile clicked. Use an observer on rocks
         let target_in_range = distance_to_target <= power.range;
 
         if target_in_range {
@@ -84,7 +137,6 @@ fn process_mining_order(
                     .trigger(NextCommand);
                 commands.entity(order.target).despawn();
                 occupancy.free(order.target);
-                // TODO: update occupancy
             }
         }
     }
