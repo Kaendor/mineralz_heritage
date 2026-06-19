@@ -11,22 +11,27 @@ use bevy::{
 use bevy_ecs_tilemap::{
     TilemapPlugin,
     anchor::TilemapAnchor,
-    helpers::square_grid::neighbors::Neighbors,
     map::{TilemapGridSize, TilemapSize, TilemapTileSize, TilemapType},
     tiles::{TileColor, TilePos, TileStorage},
 };
 use bevy_pancam::PanCamPlugin;
-use leafwing_input_manager::Actionlike;
-use pathfinding::prelude::astar;
+use leafwing_input_manager::{Actionlike, prelude::ActionState};
 use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 
 use crate::demo::{
     commands::{
         CommandQueue, NextCommand, PlayerCommand,
-        mining::{Health, MiningOrder, on_right_click_request_mining},
+        mining::{Health, on_right_click_request_mining},
         path_following::{FollowPath, Obstacle},
     },
-    level::{LevelAssets, map::Occupancy},
+    level::{
+        LevelAssets,
+        buildings::{
+            Building, PreparedBuilding, change_prepared_building, display_prepared_building,
+        },
+        enemies::basic_enemy,
+        map::Occupancy,
+    },
     player::{CursorPos, Player},
 };
 
@@ -34,12 +39,22 @@ use crate::demo::{
 pub enum Action {
     GoTo,
     PickTile,
+    SpawnEnemies,
+    ChangePreparedBuilding,
 }
 
 pub fn plugin(app: &mut App) {
     app.add_systems(
         PreUpdate,
         tilemap_picking_hits.in_set(PickingSystems::Backend),
+    );
+    app.add_systems(
+        Update,
+        (
+            spawn_enemy,
+            change_prepared_building,
+            display_prepared_building,
+        ),
     );
     app.add_plugins((TilemapPlugin, PanCamPlugin));
 }
@@ -119,7 +134,7 @@ pub fn tilemap_picking_hits(
     }
 }
 
-pub fn on_left_click_spawn_rock(
+pub fn on_left_click_spawn_prepared_building(
     trigger: On<Pointer<Press>>,
     mut commands: Commands,
     mut tiles: Query<(&mut TileColor, &TilePos)>,
@@ -132,6 +147,7 @@ pub fn on_left_click_spawn_rock(
         &TilemapAnchor,
     )>,
     mut occupancy: ResMut<Occupancy>,
+    prepared_building: Single<&PreparedBuilding, With<Player>>,
 ) {
     let pointer = trigger.event();
     let Ok((map_size, grid_size, tile_size, map_type, map_anchor)) = tilemap_q.single() else {
@@ -159,28 +175,78 @@ pub fn on_left_click_spawn_rock(
 
     tile_color.0 = palettes::tailwind::GREEN_500.into();
 
+    let Some(prepared_building) = prepared_building.current() else {
+        return;
+    };
+
+    let tile_center =
+        tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, map_anchor);
+    let building_world_position = tile_center + Vec2::new(grid_size.x, grid_size.y) / 2.0;
+
+    match prepared_building {
+        Building::Rock => {
+            let rock_entity = commands
+                .spawn((
+                    Name::new("Rock"),
+                    *tile_pos,
+                    Sprite::from_image(assets.rock.clone()),
+                    Transform::from_translation(building_world_position.extend(0.2)),
+                    Health::new(5.0),
+                    Obstacle,
+                    Aabb::from_min_max(Vec3::ZERO, Vec3::splat(32.0).with_z(0.0)),
+                    Pickable::default(),
+                ))
+                .observe(on_right_click_request_mining)
+                .id();
+            occupancy.occupy(*tile_pos, rock_footprint, rock_entity);
+        }
+        Building::Wall => {
+            let wall_entity = commands
+                .spawn((
+                    Name::new("Wall"),
+                    *tile_pos,
+                    Sprite::from_image(assets.wall.clone()),
+                    Transform::from_translation(building_world_position.extend(0.2)),
+                    Health::new(5.0),
+                    Obstacle,
+                    Aabb::from_min_max(Vec3::ZERO, Vec3::splat(32.0).with_z(0.0)),
+                    Pickable::default(),
+                ))
+                .id();
+            occupancy.occupy(*tile_pos, rock_footprint, wall_entity);
+        }
+    }
     // The clicked tile is the bottom-left of the 2x2 footprint, covering
     // (x, y), (x+1, y), (x, y+1), (x+1, y+1). A 2x2 object is centered on the
     // corner shared by those tiles, i.e. half a grid cell up and to the right
     // of the clicked tile's center.
-    let tile_center =
-        tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, map_anchor);
-    let rock_world_position = tile_center + Vec2::new(grid_size.x, grid_size.y) / 2.0;
+}
 
-    let rock_entity = commands
-        .spawn((
-            Name::new("Rock"),
-            *tile_pos,
-            Sprite::from_image(assets.rock.clone()),
-            Transform::from_translation(rock_world_position.extend(0.2)),
-            Health::new(5.0),
-            Obstacle,
-            Aabb::from_min_max(Vec3::ZERO, Vec3::splat(32.0).with_z(0.0)),
-            Pickable::default(),
-        ))
-        .observe(on_right_click_request_mining)
-        .id();
-    occupancy.occupy(*tile_pos, rock_footprint, rock_entity);
+pub fn spawn_enemy(
+    mut commands: Commands,
+    player: Single<&ActionState<Action>, With<Player>>,
+    assets: Res<LevelAssets>,
+    tilemap_q: Single<(
+        &TilemapSize,
+        &TilemapGridSize,
+        &TilemapTileSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
+) {
+    let (map_size, grid_size, tile_size, map_type, anchor) = *tilemap_q;
+    if player.just_pressed(&Action::SpawnEnemies) {
+        info!("Spawn bad guys");
+        let enemy_tile_position = TilePos::new(20, 20);
+
+        let enemy_world_position =
+            enemy_tile_position.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
+
+        commands.spawn((
+            basic_enemy(&assets),
+            Transform::from_translation(enemy_world_position.extend(0.1)),
+        ));
+    }
 }
 
 pub fn on_right_click_request_actions(
@@ -195,7 +261,6 @@ pub fn on_right_click_request_actions(
         &TilemapType,
         &TilemapAnchor,
     )>,
-    occupancy: Res<Occupancy>,
     navmeshes: Res<Assets<NavMesh>>,
     navmesh: Query<&ManagedNavMesh>,
 ) {
@@ -234,20 +299,10 @@ pub fn on_right_click_request_actions(
 
     tile_color.0 = palettes::tailwind::RED_500.into();
 
-    let entry = occupancy.entry(tile_pos, UVec2::ONE);
-
     let mut command_queue = CommandQueue::new(vec![]);
 
     if let Some(path) = navmesh.transformed_path(from_world.translation, a.position().extend(1.0)) {
         command_queue.add(PlayerCommand::GoTo(FollowPath::new(path.path)));
-    }
-    // first move, then mine
-    // if let Some(path) = path {}
-
-    if let Some(rock) = entry {
-        // FIXME: remove this when observer on rock is complete
-        return;
-        command_queue.add(PlayerCommand::Mine(MiningOrder::from(rock)));
     }
 
     if !command_queue.0.is_empty() {

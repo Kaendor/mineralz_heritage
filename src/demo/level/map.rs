@@ -28,25 +28,6 @@ impl Occupancy {
             .all(|dx| (0..size.y).all(|dy| self.is_free(&TilePos::new(pos.x + dx, pos.y + dy))))
     }
 
-    pub fn entry(&self, pos: &TilePos, size: UVec2) -> Option<Entity> {
-        let mut occupant = None;
-
-        for dx in 0..size.x {
-            for dy in 0..size.y {
-                let tile = TilePos::new(pos.x + dx, pos.y + dy);
-
-                if tile.x < self.size.x
-                    && tile.y < self.size.y
-                    && let Some(entity) = self.cells[self.index(&tile)]
-                {
-                    occupant = Some(entity);
-                }
-            }
-        }
-
-        occupant
-    }
-
     pub fn free(&mut self, entity: Entity) {
         for cell in self.cells.iter_mut() {
             if let Some(to_free) = cell

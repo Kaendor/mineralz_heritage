@@ -2,19 +2,29 @@
 
 use bevy::prelude::*;
 use bevy_asset_loader::asset_collection::AssetCollection;
+use leafwing_input_manager::{plugin::InputManagerPlugin, prelude::InputMap};
 
-use crate::demo::commands::{mining::MiningStats, path_following::MovementController};
+use crate::demo::{
+    commands::{mining::MiningStats, path_following::MovementController},
+    input::Action,
+    level::buildings::PreparedBuilding,
+};
 
 pub(super) fn plugin(app: &mut App) {
     app.init_resource::<CursorPos>();
+    app.add_systems(Startup, init_cursor_tracker);
     app.add_systems(
         Update,
-        update_cursor_pos.run_if(resource_exists::<CursorPos>),
+        (update_cursor_pos, update_cursor).run_if(resource_exists::<CursorPos>),
     );
+    app.add_plugins(InputManagerPlugin::<Action>::default());
 }
 
 #[derive(Resource)]
 pub struct CursorPos(pub Vec2);
+
+#[derive(Component)]
+pub struct Cursor;
 
 impl Default for CursorPos {
     fn default() -> Self {
@@ -22,6 +32,14 @@ impl Default for CursorPos {
         // correctly when the cursor moves.
         Self(Vec2::new(-1000.0, -1000.0))
     }
+}
+
+pub fn update_cursor(cursor_pos: Res<CursorPos>, mut cursor: Single<&mut Transform, With<Cursor>>) {
+    cursor.translation = cursor_pos.0.extend(500.0);
+}
+
+pub fn init_cursor_tracker(mut commands: Commands, cursor: Res<CursorPos>) {
+    commands.spawn((Cursor, Transform::from_translation(cursor.0.extend(500.0))));
 }
 
 // We need to keep the cursor position updated based on any `CursorMoved` events.
@@ -53,6 +71,11 @@ pub fn player(player_assets: &PlayerAssets) -> impl Bundle {
         },
         MovementController::default(),
         MiningStats::new(2.0, 26.0),
+        InputMap::new([
+            (Action::SpawnEnemies, KeyCode::Space),
+            (Action::ChangePreparedBuilding, KeyCode::KeyC),
+        ]),
+        PreparedBuilding::default(),
     )
 }
 

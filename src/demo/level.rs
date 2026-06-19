@@ -15,13 +15,14 @@ use vleue_navigator::{
 
 use crate::{
     demo::{
-        input::{on_left_click_spawn_rock, on_right_click_request_actions},
+        input::{on_left_click_spawn_prepared_building, on_right_click_request_actions},
         level::map::Occupancy,
         player::{PlayerAssets, player},
     },
     screens::Screen,
 };
 
+pub mod buildings;
 pub mod enemies;
 pub mod map;
 
@@ -40,6 +41,10 @@ pub struct LevelAssets {
     #[asset(path = "images/rock.png")]
     #[asset(image(sampler(filter = nearest)))]
     pub rock: Handle<Image>,
+
+    #[asset(path = "images/wall.png")]
+    #[asset(image(sampler(filter = nearest)))]
+    pub wall: Handle<Image>,
 
     #[asset(path = "images/enemy_sprite.png")]
     #[asset(image(sampler(filter = nearest)))]
@@ -69,7 +74,7 @@ pub fn spawn_level(
                     },
                     Pickable::default(),
                 ))
-                .observe(on_left_click_spawn_rock)
+                .observe(on_left_click_spawn_prepared_building)
                 .observe(on_right_click_request_actions)
                 .observe(recolor_on::<Pointer<Over>>(Color::BLACK))
                 .observe(recolor_on::<Pointer<Out>>(Color::WHITE))
