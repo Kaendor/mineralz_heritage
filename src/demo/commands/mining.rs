@@ -16,7 +16,6 @@ pub fn plugin(app: &mut App) {
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
-/// TODO: check is rock is near before performing mining operation
 pub struct MiningOrder {
     pub target: Entity,
 }
