@@ -31,6 +31,10 @@ impl CommandQueue {
     pub fn add(&mut self, command: PlayerCommand) {
         self.0.push_back(command);
     }
+
+    pub fn is_empty(&mut self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 #[derive(EntityEvent)]

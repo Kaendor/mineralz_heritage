@@ -31,6 +31,10 @@ impl MiningStats {
     pub fn new(power: f32, range: f32) -> Self {
         Self { power, range }
     }
+
+    pub fn range(&self) -> f32 {
+        self.range
+    }
 }
 
 #[derive(Component)]
@@ -62,7 +66,7 @@ impl From<Entity> for MiningOrder {
 pub fn on_right_click_request_mining(
     trigger: On<Pointer<Press>>,
     mut commands: Commands,
-    player: Query<(Entity, &Transform), With<Player>>,
+    player: Query<(Entity, &Transform, &MiningStats), With<Player>>,
     navmeshes: Res<Assets<NavMesh>>,
     navmesh: Query<&ManagedNavMesh>,
     transforms: Query<&Transform>,
@@ -76,36 +80,43 @@ pub fn on_right_click_request_mining(
     let Some(navmesh) = navmeshes.get(navmesh) else {
         return;
     };
-    let Ok((p_entity, p_transform)) = player.single() else {
+    let Ok((p_entity, p_transform, mining_stats)) = player.single() else {
         return;
     };
-    let Ok(rock_position) = transforms.get(trigger.event_target()) else {
+    let Ok(r_transform) = transforms.get(trigger.event_target()) else {
         return;
     };
-
-    let Some(path) = navmesh
-        .get()
-        .get_closest_point_towards(rock_position.translation.xy(), p_transform.translation.xy())
-        .and_then(|p| navmesh.transformed_path(p_transform.translation, p.position().extend(1.0)))
-    else {
-        warn!("No path found");
-        // TODO: add sound and/or visual cue
-        return;
-    };
-
-    // TODO: Check mining range in order to pick closest point
-    // TODO: check tile position to have closest_tile
-    // Use the rock surface and not the tile clicked. Use an observer on rocks
 
     let mut command_queue = CommandQueue::new(vec![]);
-    command_queue.add(PlayerCommand::GoTo(FollowPath::new(path.path)));
-    command_queue.add(PlayerCommand::Mine(MiningOrder::from(
-        trigger.event_target(),
-    )));
-    commands
-        .entity(p_entity)
-        .insert(command_queue)
-        .trigger(NextCommand::from);
+    // FIXME: If already in range, mine
+    if let Some(path) = navmesh
+        .get()
+        .get_closest_point_towards(r_transform.translation.xy(), p_transform.translation.xy())
+        .and_then(|p| navmesh.transformed_path(p_transform.translation, p.position().extend(1.0)))
+    {
+        command_queue.add(PlayerCommand::GoTo(FollowPath::new(path.path)));
+    } else {
+        warn!("No path found");
+        // TODO: add sound and/or visual cue
+    }
+
+    if p_transform
+        .translation
+        .xy()
+        .distance(r_transform.translation.xy())
+        <= mining_stats.range()
+    {
+        command_queue.add(PlayerCommand::Mine(MiningOrder::from(
+            trigger.event_target(),
+        )));
+    }
+
+    if !command_queue.is_empty() {
+        commands
+            .entity(p_entity)
+            .insert(command_queue)
+            .trigger(NextCommand::from);
+    }
 }
 
 fn surface_distance(miner: Vec2, rock_center: Vec2, footprint: Vec2) -> f32 {

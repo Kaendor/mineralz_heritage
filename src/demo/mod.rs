@@ -5,6 +5,7 @@
 
 use bevy::prelude::*;
 
+pub mod ai;
 mod animation;
 pub mod commands;
 mod input;
@@ -20,5 +21,6 @@ pub(super) fn plugin(app: &mut App) {
         player::plugin,
         input::plugin,
         commands::plugin,
+        ai::plugin,
     ));
 }

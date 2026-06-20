@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::demo::{
+    ai::Ai,
     commands::{mining::MiningStats, path_following::MovementController},
     level::LevelAssets,
 };
@@ -19,5 +20,6 @@ pub fn basic_enemy(assets: &LevelAssets) -> impl Bundle {
         },
         MovementController::default(),
         MiningStats::new(2.0, 26.0),
+        Ai,
     )
 }

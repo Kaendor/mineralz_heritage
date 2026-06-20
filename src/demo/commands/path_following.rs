@@ -3,7 +3,10 @@ use std::iter;
 use bevy::{camera::primitives::Aabb, color::palettes, prelude::*};
 use vleue_navigator::{VleueNavigatorPlugin, prelude::NavmeshUpdaterPlugin};
 
-use crate::{AppSystems, PausableSystems, demo::commands::NextCommand};
+use crate::{
+    AppSystems, PausableSystems,
+    demo::commands::{NextCommand, mining::MiningStats},
+};
 
 pub fn plugin(app: &mut App) {
     app.add_plugins((
@@ -55,6 +58,10 @@ impl FollowPath {
         self.path.get(self.current_index)
     }
 
+    pub fn destination(&self) -> Option<&Vec3> {
+        self.path.last()
+    }
+
     pub fn increment(&mut self) {
         self.current_index += 1;
     }
@@ -74,13 +81,21 @@ fn follow_path(
         &mut FollowPath,
         &mut MovementController,
         &mut Transform,
+        &MiningStats,
     )>,
     time: Res<Time>,
 ) {
-    for (entity, mut follow, controller, mut transform) in &mut player {
-        let Some(target_world) = follow.next().copied() else {
+    for (entity, mut follow, controller, mut transform, mining_stat) in &mut player {
+        if let Some(destination) = follow.destination()
+            && transform.translation.xy().distance(destination.xy()) <= mining_stat.range()
+        {
             commands.entity(entity).remove::<FollowPath>();
             commands.entity(entity).trigger(NextCommand::from);
+            continue;
+        }
+        let Some(target_world) = follow.next().copied() else {
+            // commands.entity(entity).remove::<FollowPath>();
+            // commands.entity(entity).trigger(NextCommand::from);
             continue;
         };
 
