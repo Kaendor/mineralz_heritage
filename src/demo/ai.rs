@@ -2,7 +2,9 @@ use bevy::prelude::*;
 use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 
 use crate::demo::{
-    commands::{CommandQueue, NextCommand, PlayerCommand, path_following::FollowPath},
+    commands::{
+        CommandQueue, NextCommand, PlayerCommand, mining::AttackOrder, path_following::FollowPath,
+    },
     player::Player,
 };
 
@@ -16,7 +18,7 @@ pub fn plugin(app: &mut App) {
 fn stalk_player(
     mut commands: Commands,
     stalkers: Query<(Entity, &Transform), With<Ai>>,
-    players: Query<Ref<Transform>, With<Player>>,
+    players: Query<(Entity, Ref<Transform>), With<Player>>,
     navmeshes: Res<Assets<NavMesh>>,
     navmesh: Query<&ManagedNavMesh>,
 ) {
@@ -28,17 +30,18 @@ fn stalk_player(
     };
 
     for (s_entity, s_transform) in stalkers {
-        let Some(target) = players.iter().next() else {
+        let Some((t_entity, t_transform)) = players.iter().next() else {
             return;
         };
 
-        if target.is_changed() {
+        if t_transform.is_changed() {
             let mut command_queue = CommandQueue::new(vec![]);
 
             if let Some(path) =
-                navmesh.transformed_path(s_transform.translation, target.translation)
+                navmesh.transformed_path(s_transform.translation, t_transform.translation)
             {
                 command_queue.add(PlayerCommand::GoTo(FollowPath::new(path.path)));
+                command_queue.add(PlayerCommand::Attack(AttackOrder { target: t_entity }));
             }
 
             if !command_queue.0.is_empty() {
