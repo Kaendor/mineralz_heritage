@@ -50,11 +50,7 @@ pub fn plugin(app: &mut App) {
     );
     app.add_systems(
         Update,
-        (
-            spawn_enemy,
-            change_prepared_building,
-            display_prepared_building,
-        ),
+        (change_prepared_building, display_prepared_building),
     );
     app.add_plugins((TilemapPlugin, PanCamPlugin));
 }
@@ -220,33 +216,6 @@ pub fn on_left_click_spawn_prepared_building(
     // (x, y), (x+1, y), (x, y+1), (x+1, y+1). A 2x2 object is centered on the
     // corner shared by those tiles, i.e. half a grid cell up and to the right
     // of the clicked tile's center.
-}
-
-pub fn spawn_enemy(
-    mut commands: Commands,
-    player: Single<&ActionState<Action>, With<Player>>,
-    assets: Res<LevelAssets>,
-    tilemap_q: Single<(
-        &TilemapSize,
-        &TilemapGridSize,
-        &TilemapTileSize,
-        &TilemapType,
-        &TilemapAnchor,
-    )>,
-) {
-    let (map_size, grid_size, tile_size, map_type, anchor) = *tilemap_q;
-    if player.just_pressed(&Action::SpawnEnemies) {
-        info!("Spawn bad guys");
-        let enemy_tile_position = TilePos::new(20, 20);
-
-        let enemy_world_position =
-            enemy_tile_position.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
-
-        commands.spawn((
-            basic_enemy(&assets),
-            Transform::from_translation(enemy_world_position.extend(0.1)),
-        ));
-    }
 }
 
 pub fn on_right_click_request_actions(

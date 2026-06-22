@@ -16,18 +16,18 @@ pub fn plugin(app: &mut App) {
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
-pub struct MiningOrder {
+pub struct AttackOrder {
     pub target: Entity,
 }
 
 #[derive(Component, Debug)]
 /// in HP by Seconds
-pub struct MiningStats {
+pub struct AttackStats {
     power: f32,
     range: f32,
 }
 
-impl MiningStats {
+impl AttackStats {
     pub fn new(power: f32, range: f32) -> Self {
         Self { power, range }
     }
@@ -52,12 +52,12 @@ impl Health {
         self.current <= 0.0
     }
 
-    pub fn take_damage(&mut self, damages: &MiningStats) {
+    pub fn take_damage(&mut self, damages: &AttackStats) {
         self.current -= damages.power
     }
 }
 
-impl From<Entity> for MiningOrder {
+impl From<Entity> for AttackOrder {
     fn from(value: Entity) -> Self {
         Self { target: value }
     }
@@ -66,7 +66,7 @@ impl From<Entity> for MiningOrder {
 pub fn on_right_click_request_mining(
     trigger: On<Pointer<Press>>,
     mut commands: Commands,
-    player: Query<(Entity, &Transform, &MiningStats), With<Player>>,
+    player: Query<(Entity, &Transform, &AttackStats), With<Player>>,
     navmeshes: Res<Assets<NavMesh>>,
     navmesh: Query<&ManagedNavMesh>,
     transforms: Query<&Transform>,
@@ -106,7 +106,7 @@ pub fn on_right_click_request_mining(
         .distance(r_transform.translation.xy())
         <= mining_stats.range()
     {
-        command_queue.add(PlayerCommand::Mine(MiningOrder::from(
+        command_queue.add(PlayerCommand::Attack(AttackOrder::from(
             trigger.event_target(),
         )));
     }
@@ -126,7 +126,7 @@ fn surface_distance(miner: Vec2, rock_center: Vec2, footprint: Vec2) -> f32 {
 
 fn process_mining_order(
     mut commands: Commands,
-    miners: Query<(Entity, &mut MiningOrder, &MiningStats, &Transform)>,
+    miners: Query<(Entity, &mut AttackOrder, &AttackStats, &Transform)>,
     mut targets: Query<(&mut Health, &Transform)>,
     mut occupancy: ResMut<Occupancy>,
 ) {
@@ -151,7 +151,7 @@ fn process_mining_order(
                 info!("Target is dead");
                 commands
                     .entity(miner)
-                    .remove::<MiningOrder>()
+                    .remove::<AttackOrder>()
                     .trigger(NextCommand);
                 commands.entity(order.target).despawn();
                 occupancy.free(order.target);
@@ -160,7 +160,7 @@ fn process_mining_order(
     }
 }
 
-pub fn display_mining_range(miners: Query<(&Transform, &MiningStats)>, mut gizmos: Gizmos) {
+pub fn display_mining_range(miners: Query<(&Transform, &AttackStats)>, mut gizmos: Gizmos) {
     for (position, stats) in &miners {
         gizmos.circle_2d(
             position.translation.xy(),

@@ -23,10 +23,13 @@ use crate::{
 };
 
 pub mod buildings;
+pub mod day_cycle;
 pub mod enemies;
 pub mod map;
 
-pub(super) fn plugin(_app: &mut App) {}
+pub(super) fn plugin(app: &mut App) {
+    app.add_plugins(day_cycle::plugin);
+}
 
 #[derive(Resource, Clone, Reflect, AssetCollection)]
 #[reflect(Resource)]

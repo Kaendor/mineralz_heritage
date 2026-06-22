@@ -5,7 +5,7 @@ use vleue_navigator::{VleueNavigatorPlugin, prelude::NavmeshUpdaterPlugin};
 
 use crate::{
     AppSystems, PausableSystems,
-    demo::commands::{NextCommand, mining::MiningStats},
+    demo::commands::{NextCommand, mining::AttackStats},
 };
 
 pub fn plugin(app: &mut App) {
@@ -81,7 +81,7 @@ fn follow_path(
         &mut FollowPath,
         &mut MovementController,
         &mut Transform,
-        &MiningStats,
+        &AttackStats,
     )>,
     time: Res<Time>,
 ) {

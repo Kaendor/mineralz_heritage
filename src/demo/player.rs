@@ -5,7 +5,10 @@ use bevy_asset_loader::asset_collection::AssetCollection;
 use leafwing_input_manager::{plugin::InputManagerPlugin, prelude::InputMap};
 
 use crate::demo::{
-    commands::{mining::MiningStats, path_following::MovementController},
+    commands::{
+        mining::{AttackStats, Health},
+        path_following::MovementController,
+    },
     input::Action,
     level::buildings::PreparedBuilding,
 };
@@ -70,12 +73,13 @@ pub fn player(player_assets: &PlayerAssets) -> impl Bundle {
             ..default()
         },
         MovementController::default(),
-        MiningStats::new(2.0, 26.0),
+        AttackStats::new(2.0, 26.0),
         InputMap::new([
             (Action::SpawnEnemies, KeyCode::Space),
             (Action::ChangePreparedBuilding, KeyCode::KeyC),
         ]),
         PreparedBuilding::default(),
+        Health::new(20.0),
     )
 }
 
