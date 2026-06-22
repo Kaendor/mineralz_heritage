@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::{color::palettes, prelude::*};
 use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 
@@ -10,7 +12,7 @@ use crate::demo::{
 pub fn plugin(app: &mut App) {
     app.add_systems(
         Update,
-        process_mining_order.run_if(resource_exists::<Occupancy>),
+        process_attack_order.run_if(resource_exists::<Occupancy>),
     );
 }
 
@@ -25,11 +27,20 @@ pub struct AttackOrder {
 pub struct AttackStats {
     power: f32,
     range: f32,
+    timer: Timer,
 }
 
 impl AttackStats {
-    pub fn new(power: f32, range: f32) -> Self {
-        Self { power, range }
+    /// Attack timer start complete in order to be able to attack instantly the first time
+    pub fn new(power: f32, range: f32, rate: Duration) -> Self {
+        let mut timer = Timer::new(rate, TimerMode::Repeating);
+        timer.finish();
+
+        Self {
+            power,
+            range,
+            timer,
+        }
     }
 
     pub fn range(&self) -> f32 {
@@ -124,13 +135,20 @@ fn surface_distance(miner: Vec2, rock_center: Vec2, footprint: Vec2) -> f32 {
     d.max(Vec2::ZERO).length()
 }
 
-fn process_mining_order(
+fn process_attack_order(
     mut commands: Commands,
-    miners: Query<(Entity, &mut AttackOrder, &AttackStats, &Transform)>,
+    mut miners: Query<(Entity, &mut AttackOrder, &mut AttackStats, &Transform)>,
     mut targets: Query<(&mut Health, &Transform)>,
     mut occupancy: ResMut<Occupancy>,
+    time: Res<Time>,
 ) {
-    for (miner, order, power, m_transform) in &miners {
+    for (miner, order, mut stats, m_transform) in &mut miners {
+        stats.timer.tick(time.delta());
+
+        if !stats.timer.just_finished() {
+            continue;
+        }
+
         let Ok((mut target, t_transform)) = targets.get_mut(order.target) else {
             continue;
         };
@@ -141,11 +159,11 @@ fn process_mining_order(
             Vec2::splat(16.0),
         );
 
-        let target_in_range = distance_to_edge <= power.range;
+        let target_in_range = distance_to_edge <= stats.range;
 
         if target_in_range {
-            info!("Damage rock for {power:?}");
-            target.take_damage(power);
+            info!("Damage rock for {stats:?}");
+            target.take_damage(&stats);
 
             if target.is_dead() {
                 info!("Target is dead");

@@ -1,5 +1,7 @@
 //! Player-specific behavior.
 
+use std::time::Duration;
+
 use bevy::prelude::*;
 use bevy_asset_loader::asset_collection::AssetCollection;
 use leafwing_input_manager::{plugin::InputManagerPlugin, prelude::InputMap};
@@ -73,7 +75,7 @@ pub fn player(player_assets: &PlayerAssets) -> impl Bundle {
             ..default()
         },
         MovementController::default(),
-        AttackStats::new(2.0, 26.0),
+        AttackStats::new(2.0, 26.0, Duration::from_millis(700)),
         InputMap::new([
             (Action::SpawnEnemies, KeyCode::Space),
             (Action::ChangePreparedBuilding, KeyCode::KeyC),

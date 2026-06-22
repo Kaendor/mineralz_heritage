@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 
 use crate::demo::{
@@ -19,7 +21,7 @@ pub fn basic_enemy(assets: &LevelAssets) -> impl Bundle {
             ..default()
         },
         MovementController::default(),
-        AttackStats::new(2.0, 18.0),
+        AttackStats::new(2.0, 18.0, Duration::from_millis(700)),
         Ai,
     )
 }
