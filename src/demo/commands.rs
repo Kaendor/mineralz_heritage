@@ -14,26 +14,32 @@ pub fn plugin(app: &mut App) {
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
-pub enum PlayerCommand {
+pub enum EntityCommand {
     GoTo(FollowPath),
     Attack(AttackOrder),
 }
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
-pub struct CommandQueue(pub VecDeque<PlayerCommand>);
+pub struct CommandQueue(pub VecDeque<EntityCommand>);
 
 impl CommandQueue {
-    pub fn new(commands: Vec<PlayerCommand>) -> Self {
+    pub fn new(commands: Vec<EntityCommand>) -> Self {
         Self(VecDeque::from_iter(commands))
     }
 
-    pub fn add(&mut self, command: PlayerCommand) {
+    pub fn add(&mut self, command: EntityCommand) {
         self.0.push_back(command);
     }
 
     pub fn is_empty(&mut self) -> bool {
         self.0.is_empty()
+    }
+
+    pub fn has_attack_order(&self) -> bool {
+        self.0
+            .iter()
+            .any(|c| matches!(c, EntityCommand::Attack(..)))
     }
 }
 
@@ -66,11 +72,11 @@ fn process_command_queue(
     };
 
     match next_command {
-        PlayerCommand::GoTo(follow_path) => {
+        EntityCommand::GoTo(follow_path) => {
             info!("Start new path: {follow_path:?}");
             commands.entity(on.event_target()).insert(follow_path);
         }
-        PlayerCommand::Attack(mine_order) => {
+        EntityCommand::Attack(mine_order) => {
             commands.entity(on.event_target()).insert(mine_order);
             info!("Mine rock");
         }

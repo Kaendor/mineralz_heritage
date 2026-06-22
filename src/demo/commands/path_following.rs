@@ -5,7 +5,7 @@ use vleue_navigator::{VleueNavigatorPlugin, prelude::NavmeshUpdaterPlugin};
 
 use crate::{
     AppSystems, PausableSystems,
-    demo::commands::{NextCommand, mining::AttackStats},
+    demo::commands::{CommandQueue, NextCommand, mining::AttackStats},
 };
 
 pub fn plugin(app: &mut App) {
@@ -82,20 +82,22 @@ fn follow_path(
         &mut MovementController,
         &mut Transform,
         &AttackStats,
+        &CommandQueue,
     )>,
     time: Res<Time>,
 ) {
-    for (entity, mut follow, controller, mut transform, mining_stat) in &mut player {
+    for (entity, mut follow, controller, mut transform, mining_stat, command_queue) in &mut player {
         if let Some(destination) = follow.destination()
             && transform.translation.xy().distance(destination.xy()) <= mining_stat.range()
+            && command_queue.has_attack_order()
         {
             commands.entity(entity).remove::<FollowPath>();
             commands.entity(entity).trigger(NextCommand::from);
             continue;
         }
         let Some(target_world) = follow.next().copied() else {
-            // commands.entity(entity).remove::<FollowPath>();
-            // commands.entity(entity).trigger(NextCommand::from);
+            commands.entity(entity).remove::<FollowPath>();
+            commands.entity(entity).trigger(NextCommand::from);
             continue;
         };
 

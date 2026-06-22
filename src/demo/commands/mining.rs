@@ -2,7 +2,7 @@ use bevy::{color::palettes, prelude::*};
 use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 
 use crate::demo::{
-    commands::{CommandQueue, NextCommand, PlayerCommand, path_following::FollowPath},
+    commands::{CommandQueue, EntityCommand, NextCommand, path_following::FollowPath},
     level::map::Occupancy,
     player::Player,
 };
@@ -94,7 +94,7 @@ pub fn on_right_click_request_mining(
         .get_closest_point_towards(r_transform.translation.xy(), p_transform.translation.xy())
         .and_then(|p| navmesh.transformed_path(p_transform.translation, p.position().extend(1.0)))
     {
-        command_queue.add(PlayerCommand::GoTo(FollowPath::new(path.path)));
+        command_queue.add(EntityCommand::GoTo(FollowPath::new(path.path)));
     } else {
         warn!("No path found");
         // TODO: add sound and/or visual cue
@@ -106,7 +106,7 @@ pub fn on_right_click_request_mining(
         .distance(r_transform.translation.xy())
         <= mining_stats.range()
     {
-        command_queue.add(PlayerCommand::Attack(AttackOrder::from(
+        command_queue.add(EntityCommand::Attack(AttackOrder::from(
             trigger.event_target(),
         )));
     }

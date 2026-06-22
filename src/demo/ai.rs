@@ -3,7 +3,7 @@ use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 
 use crate::demo::{
     commands::{
-        CommandQueue, NextCommand, PlayerCommand, mining::AttackOrder, path_following::FollowPath,
+        CommandQueue, EntityCommand, NextCommand, mining::AttackOrder, path_following::FollowPath,
     },
     player::Player,
 };
@@ -40,8 +40,8 @@ fn stalk_player(
             if let Some(path) =
                 navmesh.transformed_path(s_transform.translation, t_transform.translation)
             {
-                command_queue.add(PlayerCommand::GoTo(FollowPath::new(path.path)));
-                command_queue.add(PlayerCommand::Attack(AttackOrder { target: t_entity }));
+                command_queue.add(EntityCommand::GoTo(FollowPath::new(path.path)));
+                command_queue.add(EntityCommand::Attack(AttackOrder { target: t_entity }));
             }
 
             if !command_queue.0.is_empty() {

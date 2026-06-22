@@ -20,7 +20,7 @@ use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 
 use crate::demo::{
     commands::{
-        CommandQueue, NextCommand, PlayerCommand,
+        CommandQueue, EntityCommand, NextCommand,
         mining::{Health, on_right_click_request_mining},
         path_following::{FollowPath, Obstacle},
     },
@@ -271,7 +271,7 @@ pub fn on_right_click_request_actions(
     let mut command_queue = CommandQueue::new(vec![]);
 
     if let Some(path) = navmesh.transformed_path(from_world.translation, a.position().extend(1.0)) {
-        command_queue.add(PlayerCommand::GoTo(FollowPath::new(path.path)));
+        command_queue.add(EntityCommand::GoTo(FollowPath::new(path.path)));
     }
 
     if !command_queue.0.is_empty() {
