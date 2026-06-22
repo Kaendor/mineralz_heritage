@@ -30,11 +30,13 @@ fn stalk_other_factions(
     };
 
     for (s_entity, s_transform, s_faction) in stalkers {
-        let Some((t_entity, t_transform, t_faction)) = other_factions_entities
+        // TODO: find closest other faction
+        let Some((t_entity, t_transform, _faction)) = other_factions_entities
             .iter()
             .filter(|(_, _, f)| *f != s_faction)
             .next()
         else {
+            warn!("No other faction found");
             return;
         };
 

@@ -1,7 +1,10 @@
 use std::iter;
 
 use bevy::{camera::primitives::Aabb, color::palettes, prelude::*};
-use vleue_navigator::{VleueNavigatorPlugin, prelude::NavmeshUpdaterPlugin};
+use vleue_navigator::{
+    NavMesh, VleueNavigatorPlugin,
+    prelude::{ManagedNavMesh, NavMeshStatus, NavmeshUpdaterPlugin},
+};
 
 use crate::{
     AppSystems, PausableSystems,
@@ -15,7 +18,7 @@ pub fn plugin(app: &mut App) {
     ));
     app.add_systems(
         Update,
-        (follow_path)
+        (follow_path, refresh_path_on_change)
             .in_set(AppSystems::Update)
             .in_set(PausableSystems),
     );
@@ -112,6 +115,47 @@ fn follow_path(
             transform.translation = target_world.with_z(1.0);
         }
     }
+}
+
+fn refresh_path_on_change(
+    mut commands: Commands,
+    mut navigators: Query<(Entity, &Transform, &mut FollowPath)>,
+    mut navmeshes: ResMut<Assets<NavMesh>>,
+    navmesh: Single<(&ManagedNavMesh, Ref<NavMeshStatus>)>,
+    mut delta: Local<f32>,
+) {
+    if (!navmesh.1.is_changed() || *navmesh.1 != NavMeshStatus::Built) && *delta == 0.0 {
+        return;
+    }
+    let Some(navmesh) = navmeshes.get_mut(navmesh.0) else {
+        return;
+    };
+
+    for (entity, transform, mut path) in &mut navigators {
+        let Some(target) = path.destination() else {
+            continue;
+        };
+        if !navmesh.transformed_is_in_mesh(transform.translation) {
+            *delta += 0.1;
+            navmesh.set_search_delta(*delta);
+            error!("Current navigator is outside navmesh");
+            continue;
+        }
+        if !navmesh.transformed_is_in_mesh(*target) {
+            error!("Last node is outside navmesh");
+            commands.entity(entity).remove::<FollowPath>();
+            continue;
+        }
+
+        let Some(new_path) = navmesh.transformed_path(transform.translation, *target) else {
+            error!("Unable to find new path after world change");
+            commands.entity(entity).remove::<FollowPath>();
+            continue;
+        };
+        *path = FollowPath::new(new_path.path);
+        *delta = 0.0;
+    }
+    info!("Update pathes");
 }
 
 pub fn display_paths(paths: Query<(&Transform, &FollowPath)>, mut gizmos: Gizmos) {
