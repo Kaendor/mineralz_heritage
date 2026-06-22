@@ -5,20 +5,20 @@ use crate::demo::{
     commands::{
         CommandQueue, EntityCommand, NextCommand, mining::AttackOrder, path_following::FollowPath,
     },
-    player::Player,
+    player::{Faction, Player},
 };
 
 #[derive(Component)]
 pub struct Ai;
 
 pub fn plugin(app: &mut App) {
-    app.add_systems(Update, stalk_player);
+    app.add_systems(Update, stalk_other_factions);
 }
 
-fn stalk_player(
+fn stalk_other_factions(
     mut commands: Commands,
-    stalkers: Query<(Entity, &Transform), With<Ai>>,
-    players: Query<(Entity, Ref<Transform>), With<Player>>,
+    stalkers: Query<(Entity, Ref<Transform>, &Faction), With<Ai>>,
+    other_factions_entities: Query<(Entity, Ref<Transform>, &Faction)>,
     navmeshes: Res<Assets<NavMesh>>,
     navmesh: Query<&ManagedNavMesh>,
 ) {
@@ -29,12 +29,16 @@ fn stalk_player(
         return;
     };
 
-    for (s_entity, s_transform) in stalkers {
-        let Some((t_entity, t_transform)) = players.iter().next() else {
+    for (s_entity, s_transform, s_faction) in stalkers {
+        let Some((t_entity, t_transform, t_faction)) = other_factions_entities
+            .iter()
+            .filter(|(_, _, f)| *f != s_faction)
+            .next()
+        else {
             return;
         };
 
-        if t_transform.is_changed() {
+        if t_transform.is_changed() || s_transform.is_added() {
             let mut command_queue = CommandQueue::new(vec![]);
 
             if let Some(path) =

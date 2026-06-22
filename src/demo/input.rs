@@ -15,7 +15,7 @@ use bevy_ecs_tilemap::{
     tiles::{TileColor, TilePos, TileStorage},
 };
 use bevy_pancam::PanCamPlugin;
-use leafwing_input_manager::{Actionlike, prelude::ActionState};
+use leafwing_input_manager::Actionlike;
 use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 
 use crate::demo::{
@@ -29,10 +29,9 @@ use crate::demo::{
         buildings::{
             Building, PreparedBuilding, change_prepared_building, display_prepared_building,
         },
-        enemies::basic_enemy,
         map::Occupancy,
     },
-    player::{CursorPos, Player},
+    player::{CursorPos, Faction, Player},
 };
 
 #[derive(Actionlike, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
@@ -207,6 +206,7 @@ pub fn on_left_click_spawn_prepared_building(
                     Obstacle,
                     Aabb::from_min_max(Vec3::ZERO, Vec3::splat(32.0).with_z(0.0)),
                     Pickable::default(),
+                    Faction::player(),
                 ))
                 .id();
             occupancy.occupy(*tile_pos, rock_footprint, wall_entity);

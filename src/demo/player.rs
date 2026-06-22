@@ -82,8 +82,28 @@ pub fn player(player_assets: &PlayerAssets) -> impl Bundle {
         ]),
         PreparedBuilding::default(),
         Health::new(20.0),
+        Faction::player(),
     )
 }
+
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Faction(pub FactionId);
+
+impl Faction {
+    pub const PLAYER_FACTION_ID: FactionId = FactionId(1);
+    pub const MONSTER_FACTION_ID: FactionId = FactionId(2);
+
+    pub fn player() -> Self {
+        Faction(Self::PLAYER_FACTION_ID)
+    }
+
+    pub fn monster() -> Self {
+        Faction(Self::MONSTER_FACTION_ID)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct FactionId(u16);
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Default, Reflect)]
 #[reflect(Component)]
