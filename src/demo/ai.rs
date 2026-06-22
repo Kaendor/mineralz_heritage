@@ -1,18 +1,26 @@
 use bevy::prelude::*;
 use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 
-use crate::demo::{
-    commands::{
-        CommandQueue, EntityCommand, NextCommand, mining::AttackOrder, path_following::FollowPath,
+use crate::{
+    demo::{
+        commands::{
+            CommandQueue, EntityCommand, NextCommand, mining::AttackOrder,
+            path_following::FollowPath,
+        },
+        level::map::SpatialIndex,
+        player::Faction,
     },
-    player::{Faction, Player},
+    screens::Screen,
 };
 
 #[derive(Component)]
 pub struct Ai;
 
 pub fn plugin(app: &mut App) {
-    app.add_systems(Update, stalk_other_factions);
+    app.add_systems(
+        Update,
+        stalk_other_factions.run_if(resource_exists::<SpatialIndex>),
+    );
 }
 
 fn stalk_other_factions(
@@ -21,6 +29,7 @@ fn stalk_other_factions(
     other_factions_entities: Query<(Entity, Ref<Transform>, &Faction)>,
     navmeshes: Res<Assets<NavMesh>>,
     navmesh: Query<&ManagedNavMesh>,
+    index: Res<SpatialIndex>,
 ) {
     let Ok(navmesh) = navmesh.single() else {
         return;
@@ -30,14 +39,15 @@ fn stalk_other_factions(
     };
 
     for (s_entity, s_transform, s_faction) in stalkers {
-        // TODO: find closest other faction
-        let Some((t_entity, t_transform, _faction)) = other_factions_entities
-            .iter()
-            .filter(|(_, _, f)| *f != s_faction)
-            .next()
-        else {
+        let target = index
+            .0
+            .nearest_neighbor_iter(s_transform.translation.xy().to_array())
+            .filter_map(|n| other_factions_entities.get(n.data).ok())
+            .find(|(_, _, f)| *f != s_faction);
+
+        let Some((t_entity, t_transform, _faction)) = target else {
             warn!("No other faction found");
-            return;
+            continue;
         };
 
         if t_transform.is_changed() || s_transform.is_added() {

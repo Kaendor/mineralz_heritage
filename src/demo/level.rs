@@ -28,7 +28,7 @@ pub mod enemies;
 pub mod map;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_plugins(day_cycle::plugin);
+    app.add_plugins((day_cycle::plugin, map::plugin));
 }
 
 #[derive(Resource, Clone, Reflect, AssetCollection)]
