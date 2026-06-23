@@ -8,7 +8,7 @@ use vleue_navigator::{
 
 use crate::{
     AppSystems, PausableSystems,
-    demo::commands::{CommandQueue, NextCommand, mining::AttackStats},
+    demo::commands::{CommandQueue, NextCommand, mining::AttackStats, mining::surface_distance},
 };
 
 pub fn plugin(app: &mut App) {
@@ -87,12 +87,20 @@ fn follow_path(
         &AttackStats,
         &CommandQueue,
     )>,
+    targets: Query<&Transform, Without<FollowPath>>,
     time: Res<Time>,
 ) {
     for (entity, mut follow, controller, mut transform, mining_stat, command_queue) in &mut player {
-        if let Some(destination) = follow.destination()
-            && transform.translation.xy().distance(destination.xy()) <= mining_stat.range()
-            && command_queue.has_attack_order()
+        // Stop and start attacking once within range of the actual target. The path's
+        // last node is the closest *walkable* point, which for obstacle targets is offset
+        // by the navmesh agent radius, so it can't be used for the range check.
+        if let Some(target) = command_queue.attack_target()
+            && let Ok(target_transform) = targets.get(target)
+            && surface_distance(
+                transform.translation.xy(),
+                target_transform.translation.xy(),
+                Vec2::splat(16.0),
+            ) <= mining_stat.range()
         {
             commands.entity(entity).remove::<FollowPath>();
             commands.entity(entity).trigger(NextCommand::from);

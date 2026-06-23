@@ -1,16 +1,12 @@
 use bevy::prelude::*;
 use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 
-use crate::{
-    demo::{
-        commands::{
-            CommandQueue, EntityCommand, NextCommand, mining::AttackOrder,
-            path_following::FollowPath,
-        },
-        level::map::SpatialIndex,
-        player::Faction,
+use crate::demo::{
+    commands::{
+        CommandQueue, EntityCommand, NextCommand, mining::AttackOrder, path_following::FollowPath,
     },
-    screens::Screen,
+    level::map::SpatialIndex,
+    player::Faction,
 };
 
 #[derive(Component)]
@@ -22,10 +18,6 @@ pub struct PickNextTarget {
 }
 
 pub fn plugin(app: &mut App) {
-    // app.add_systems(
-    //     Update,
-    //     stalk_other_factions.run_if(resource_exists::<SpatialIndex>),
-    // );
     app.add_observer(on_pick_next_target);
 }
 
@@ -49,30 +41,48 @@ fn on_pick_next_target(
         return;
     };
 
+    // Walk candidates nearest-first and commit to the first one we can actually
+    // path to. Committing to the single closest target and giving up if it is
+    // unreachable leaves the AI idle when, e.g., it just killed a wall and the next
+    // closest target is boxed in.
     let target = index
         .0
         .nearest_neighbor_iter(s_transform.translation.xy().to_array())
         .filter_map(|n| other_factions_entities.get(n.data).ok())
-        .find(|(_, _, f)| *f != s_faction);
+        .filter(|(_, _, f)| *f != s_faction)
+        .find_map(|(t_entity, t_transform, _)| {
+            // Movers (e.g. the player) sit inside the navmesh and can be pathed to
+            // directly. Obstacle targets (e.g. a wall) have their center outside the
+            // navmesh, so we path to the closest reachable point towards them instead.
+            let destination = if navmesh.transformed_is_in_mesh(t_transform.translation) {
+                Some(t_transform.translation)
+            } else {
+                navmesh
+                    .get()
+                    .get_closest_point_towards(
+                        t_transform.translation.xy(),
+                        s_transform.translation.xy(),
+                    )
+                    .map(|p| p.position().extend(1.0))
+            };
 
-    let Some((t_entity, t_transform, _faction)) = target else {
-        warn!("No other faction found");
+            let path = destination
+                .and_then(|dest| navmesh.transformed_path(s_transform.translation, dest))?;
+
+            Some((t_entity, path))
+        });
+
+    let Some((t_entity, path)) = target else {
+        warn!("No reachable target found");
         return;
     };
 
-    // if t_transform.is_changed() || s_transform.is_added() {
     let mut command_queue = CommandQueue::new(vec![]);
+    command_queue.add(EntityCommand::GoTo(FollowPath::new(path.path)));
+    command_queue.add(EntityCommand::Attack(AttackOrder { target: t_entity }));
 
-    if let Some(path) = navmesh.transformed_path(s_transform.translation, t_transform.translation) {
-        command_queue.add(EntityCommand::GoTo(FollowPath::new(path.path)));
-        command_queue.add(EntityCommand::Attack(AttackOrder { target: t_entity }));
-    }
-
-    if !command_queue.0.is_empty() {
-        commands
-            .entity(s_entity)
-            .insert(command_queue)
-            .trigger(NextCommand::from);
-    }
-    // }
+    commands
+        .entity(s_entity)
+        .insert(command_queue)
+        .trigger(NextCommand::from);
 }

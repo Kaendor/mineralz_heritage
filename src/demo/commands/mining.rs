@@ -131,7 +131,7 @@ pub fn on_right_click_request_mining(
     }
 }
 
-fn surface_distance(miner: Vec2, rock_center: Vec2, footprint: Vec2) -> f32 {
+pub(crate) fn surface_distance(miner: Vec2, rock_center: Vec2, footprint: Vec2) -> f32 {
     let d = (miner - rock_center).abs() - footprint / 2.0; // (16,16) for a 2x2
     d.max(Vec2::ZERO).length()
 }

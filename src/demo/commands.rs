@@ -41,6 +41,14 @@ impl CommandQueue {
             .iter()
             .any(|c| matches!(c, EntityCommand::Attack(..)))
     }
+
+    /// The entity the next queued attack order targets, if any.
+    pub fn attack_target(&self) -> Option<Entity> {
+        self.0.iter().find_map(|c| match c {
+            EntityCommand::Attack(order) => Some(order.target),
+            _ => None,
+        })
+    }
 }
 
 #[derive(EntityEvent)]
