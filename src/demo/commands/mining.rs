@@ -100,7 +100,6 @@ pub fn on_right_click_request_mining(
     };
 
     let mut command_queue = CommandQueue::new(vec![]);
-    // FIXME: If already in range, mine
     if let Some(path) = navmesh
         .get()
         .get_closest_point_towards(r_transform.translation.xy(), p_transform.translation.xy())

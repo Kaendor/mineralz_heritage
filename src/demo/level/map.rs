@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
-use rstar::{RTree, primitives::GeomWithData};
+use rstar::{
+    RTree,
+    primitives::{GeomWithData, Rectangle},
+};
 
 use crate::{
     demo::commands::path_following::{MovementController, Obstacle},
@@ -17,7 +20,7 @@ pub fn plugin(app: &mut App) {
     );
 }
 
-pub type SpatialEntity = GeomWithData<[f32; 2], Entity>;
+pub type SpatialEntity = GeomWithData<Rectangle<[f32; 2]>, Entity>;
 
 // TODO: Maybe there should be multiple spatial indices for each usages. When a monster needs the
 // closest enemy for example...
@@ -49,12 +52,31 @@ fn update_spatial_index(
     obstacles: Query<(Entity, &Transform), With<Obstacle>>,
     moving_entities: Query<(Entity, &Transform), With<MovementController>>,
 ) {
-    let spatial_entities = obstacles
+    let mut obstacles: Vec<_> = obstacles
         .iter()
-        .chain(moving_entities)
-        .map(|(e, t)| GeomWithData::new(t.translation.xy().to_array(), e))
+        .map(|(e, t)| {
+            // FIXME: Assumption than obstacles entities are two cell wide
+            let bottom_left = t.translation.xy() - Vec2::splat(16.0);
+            let top_right = t.translation.xy() + Vec2::splat(16.0);
+            let rectangle = Rectangle::from_corners(bottom_left.to_array(), top_right.to_array());
+            return GeomWithData::new(rectangle, e);
+        })
         .collect();
-    let tree = RTree::bulk_load(spatial_entities);
+
+    let mut movings: Vec<_> = moving_entities
+        .iter()
+        .map(|(e, t)| {
+            // FIXME: Assumption than moving entities are one cell wide
+            let bottom_left = t.translation.xy() - Vec2::splat(8.0);
+            let top_right = t.translation.xy() + Vec2::splat(8.0);
+            let rectangle = Rectangle::from_corners(bottom_left.to_array(), top_right.to_array());
+            return GeomWithData::new(rectangle, e);
+        })
+        .collect();
+
+    obstacles.append(&mut movings);
+
+    let tree = RTree::bulk_load(obstacles);
 
     index.0 = tree;
 }
