@@ -4,6 +4,7 @@ use bevy::{color::palettes, prelude::*};
 use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 
 use crate::demo::{
+    ai::{Ai, PickNextTarget},
     commands::{CommandQueue, EntityCommand, NextCommand, path_following::FollowPath},
     level::map::Occupancy,
     player::Player,
@@ -137,12 +138,18 @@ fn surface_distance(miner: Vec2, rock_center: Vec2, footprint: Vec2) -> f32 {
 
 fn process_attack_order(
     mut commands: Commands,
-    mut miners: Query<(Entity, &mut AttackOrder, &mut AttackStats, &Transform)>,
+    mut miners: Query<(
+        Entity,
+        &mut AttackOrder,
+        &mut AttackStats,
+        &Transform,
+        Option<&Ai>,
+    )>,
     mut targets: Query<(&mut Health, &Transform)>,
     mut occupancy: ResMut<Occupancy>,
     time: Res<Time>,
 ) {
-    for (miner, order, mut stats, m_transform) in &mut miners {
+    for (miner, order, mut stats, m_transform, is_ai) in &mut miners {
         stats.timer.tick(time.delta());
 
         if !stats.timer.just_finished() {
@@ -173,6 +180,14 @@ fn process_attack_order(
                     .trigger(NextCommand);
                 commands.entity(order.target).despawn();
                 occupancy.free(order.target);
+
+                if is_ai.is_some() {
+                    info!("AI must pick another target");
+
+                    commands
+                        .entity(miner)
+                        .trigger(|e| PickNextTarget { entity: e });
+                }
             }
         }
     }

@@ -7,6 +7,7 @@ use bevy_ecs_tilemap::{
 use leafwing_input_manager::prelude::ActionState;
 
 use crate::demo::{
+    ai::PickNextTarget,
     input::Action,
     level::{LevelAssets, enemies::basic_enemy},
     player::Player,
@@ -39,10 +40,12 @@ pub fn on_night_start_spawn_enemies(
     let enemy_world_position =
         enemy_tile_position.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
 
-    commands.spawn((
-        basic_enemy(&assets),
-        Transform::from_translation(enemy_world_position.extend(0.1)),
-    ));
+    commands
+        .spawn((
+            basic_enemy(&assets),
+            Transform::from_translation(enemy_world_position.extend(0.1)),
+        ))
+        .trigger(|e| PickNextTarget { entity: e });
 }
 
 pub fn trigger_night(mut commands: Commands, player: Single<&ActionState<Action>, With<Player>>) {
