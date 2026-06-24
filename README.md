@@ -3,6 +3,8 @@
 This project was generated using the [Bevy New 2D](https://github.com/TheBevyFlock/bevy_new_2d) template.
 Check out the [documentation](https://github.com/TheBevyFlock/bevy_new_2d/blob/main/README.md) to get started!
 
+The game is live on [itch.io](https://kaendor.itch.io/mineralz-heritage)
+
 **As per the arcade map description**
 
 - Gather 6 different types of minerals to survive the incoming zerg attacks.

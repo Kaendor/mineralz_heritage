@@ -92,7 +92,7 @@ pub fn spawn_level(
     let grid_size = tile_size.into();
     let map_type = TilemapType::default();
 
-    let player_tile_position = TilePos::new(0, 0);
+    let player_tile_position = TilePos::new(16, 16);
 
     let player_world_position = player_tile_position.center_in_world(
         &map_size,

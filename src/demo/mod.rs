@@ -12,6 +12,7 @@ mod input;
 pub mod level;
 mod movement;
 pub mod player;
+mod ui;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins((
@@ -22,5 +23,6 @@ pub(super) fn plugin(app: &mut App) {
         input::plugin,
         commands::plugin,
         ai::plugin,
+        ui::plugin,
     ));
 }

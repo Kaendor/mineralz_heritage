@@ -99,6 +99,7 @@ pub fn on_right_click_request_mining(
         return;
     };
 
+    info!("Request mining");
     let mut command_queue = CommandQueue::new(vec![]);
     if let Some(path) = navmesh
         .get()
@@ -106,21 +107,24 @@ pub fn on_right_click_request_mining(
         .and_then(|p| navmesh.transformed_path(p_transform.translation, p.position().extend(1.0)))
     {
         command_queue.add(EntityCommand::GoTo(FollowPath::new(path.path)));
+        command_queue.add(EntityCommand::Attack(AttackOrder::from(
+            trigger.event_target(),
+        )));
     } else {
         warn!("No path found");
         // TODO: add sound and/or visual cue
     }
 
-    if p_transform
-        .translation
-        .xy()
-        .distance(r_transform.translation.xy())
-        <= mining_stats.range()
-    {
-        command_queue.add(EntityCommand::Attack(AttackOrder::from(
-            trigger.event_target(),
-        )));
-    }
+    // if p_transform
+    //     .translation
+    //     .xy()
+    //     .distance(r_transform.translation.xy())
+    //     <= mining_stats.range()
+    // {
+    command_queue.add(EntityCommand::Attack(AttackOrder::from(
+        trigger.event_target(),
+    )));
+    // }
 
     if !command_queue.is_empty() {
         commands
@@ -188,6 +192,8 @@ fn process_attack_order(
                         .trigger(|e| PickNextTarget { entity: e });
                 }
             }
+        } else {
+            // TODO: update commands in order to go to the current target
         }
     }
 }
