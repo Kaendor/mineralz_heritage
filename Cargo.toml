@@ -25,8 +25,12 @@ tracing = { version = "0.1", features = [
 vleue_navigator = "0.15.0"
 rstar = "0.13.0"
 
+[target.wasm32-unknown-unknown]
+rustflags = ['--cfg', 'getrandom_backend="wasm_js"']
+
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.3", features = ["wasm_js"] }
+getrandom_02 = { package = "getrandom", version = "0.2", features = ["js"] }
 
 [features]
 # Default to a native dev build.
