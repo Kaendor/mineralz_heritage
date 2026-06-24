@@ -165,7 +165,7 @@ pub fn spawn_level(
         },
         NavMeshSettings {
             fixed: Triangulation::from_outer_edges(&edges),
-            agent_radius: tile_size.x / 3.0,
+            agent_radius: tile_size.x / 8.0,
             simplify: 0.02,
             merge_steps: 2,
             default_search_delta: 8.0,

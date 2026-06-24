@@ -258,13 +258,10 @@ pub fn on_right_click_request_actions(
     let to = tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
 
     // Check mining range in order to pick closest point
-    // TODO: check tile position to have closest_tile
-    // Use the rock surface and not the tile clicked. Use an observer on rocks
     let Some(a) = navmesh.get().get_closest_point(to) else {
         warn!("No closest point found");
         return;
     };
-    // let from_world = from.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
 
     tile_color.0 = palettes::tailwind::RED_500.into();
 
