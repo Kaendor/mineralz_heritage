@@ -59,7 +59,7 @@ fn update_spatial_index(
             let bottom_left = t.translation.xy() - Vec2::splat(16.0);
             let top_right = t.translation.xy() + Vec2::splat(16.0);
             let rectangle = Rectangle::from_corners(bottom_left.to_array(), top_right.to_array());
-            return GeomWithData::new(rectangle, e);
+            GeomWithData::new(rectangle, e)
         })
         .collect();
 
@@ -70,7 +70,7 @@ fn update_spatial_index(
             let bottom_left = t.translation.xy() - Vec2::splat(8.0);
             let top_right = t.translation.xy() + Vec2::splat(8.0);
             let rectangle = Rectangle::from_corners(bottom_left.to_array(), top_right.to_array());
-            return GeomWithData::new(rectangle, e);
+            GeomWithData::new(rectangle, e)
         })
         .collect();
 

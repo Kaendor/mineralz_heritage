@@ -4,9 +4,7 @@ use bevy::prelude::*;
 
 use crate::demo::{
     ai::Ai,
-    commands::{
-        CommandQueue, EntityCommand, mining::AttackStats, path_following::MovementController,
-    },
+    commands::{mining::AttackStats, path_following::MovementController},
     level::LevelAssets,
     player::Faction,
 };

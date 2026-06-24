@@ -36,12 +36,6 @@ impl CommandQueue {
         self.0.is_empty()
     }
 
-    pub fn has_attack_order(&self) -> bool {
-        self.0
-            .iter()
-            .any(|c| matches!(c, EntityCommand::Attack(..)))
-    }
-
     /// The entity the next queued attack order targets, if any.
     pub fn attack_target(&self) -> Option<Entity> {
         self.0.iter().find_map(|c| match c {
