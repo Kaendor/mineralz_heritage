@@ -101,30 +101,31 @@ pub fn on_right_click_request_mining(
 
     info!("Request mining");
     let mut command_queue = CommandQueue::new(vec![]);
-    if let Some(path) = navmesh
-        .get()
-        .get_closest_point_towards(r_transform.translation.xy(), p_transform.translation.xy())
-        .and_then(|p| navmesh.transformed_path(p_transform.translation, p.position().extend(1.0)))
-    {
-        command_queue.add(EntityCommand::GoTo(FollowPath::new(path.path)));
-        command_queue.add(EntityCommand::Attack(AttackOrder::from(
-            trigger.event_target(),
-        )));
-    } else {
-        warn!("No path found");
-        // TODO: add sound and/or visual cue
+
+    let is_far_from_target = p_transform
+        .translation
+        .xy()
+        .distance(r_transform.translation.xy())
+        > mining_stats.range();
+
+    if is_far_from_target {
+        if let Some(path) = navmesh
+            .get()
+            .get_closest_point_towards(r_transform.translation.xy(), p_transform.translation.xy())
+            .and_then(|p| {
+                navmesh.transformed_path(p_transform.translation, p.position().extend(1.0))
+            })
+        {
+            command_queue.add(EntityCommand::GoTo(FollowPath::new(path.path)));
+        } else {
+            warn!("No path found");
+            // TODO: add sound and/or visual cue
+        }
     }
 
-    // if p_transform
-    //     .translation
-    //     .xy()
-    //     .distance(r_transform.translation.xy())
-    //     <= mining_stats.range()
-    // {
     command_queue.add(EntityCommand::Attack(AttackOrder::from(
         trigger.event_target(),
     )));
-    // }
 
     if !command_queue.is_empty() {
         commands

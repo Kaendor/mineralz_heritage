@@ -13,6 +13,10 @@ use crate::demo::{
 #[reflect(Component)]
 pub struct Enemy;
 
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Default, Reflect)]
+#[reflect(Component)]
+pub struct EnemySpawn;
+
 pub fn basic_enemy(assets: &LevelAssets) -> impl Bundle {
     (
         Name::new("Enemy"),

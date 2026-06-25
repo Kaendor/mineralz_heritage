@@ -16,7 +16,7 @@ use vleue_navigator::{
 use crate::{
     demo::{
         input::{on_left_click_spawn_prepared_building, on_right_click_request_actions},
-        level::map::Occupancy,
+        level::{enemies::EnemySpawn, map::Occupancy},
         player::{PlayerAssets, player},
     },
     screens::Screen,
@@ -52,6 +52,10 @@ pub struct LevelAssets {
     #[asset(path = "images/enemy_sprite.png")]
     #[asset(image(sampler(filter = nearest)))]
     pub enemy: Handle<Image>,
+
+    #[asset(path = "images/warning.png")]
+    #[asset(image(sampler(filter = nearest)))]
+    pub warning: Handle<Image>,
 }
 
 /// A system that spawns the main level.
@@ -120,6 +124,23 @@ pub fn spawn_level(
             ChildOf(level),
         ))
         .id();
+
+    let enemy_spawn_tile_position = TilePos::new(31, 31);
+    let enemy_spawn_position = enemy_spawn_tile_position.center_in_world(
+        &map_size,
+        &grid_size,
+        &tile_size,
+        &map_type,
+        &TilemapAnchor::Center,
+    );
+
+    commands.spawn((
+        EnemySpawn,
+        enemy_spawn_tile_position,
+        Transform::from_translation(enemy_spawn_position.extend(0.1)),
+        Sprite::from_image(level_assets.warning.clone()),
+        ChildOf(level),
+    ));
 
     occupancy.occupy(player_tile_position, UVec2::ONE, player);
     commands.insert_resource(occupancy);
