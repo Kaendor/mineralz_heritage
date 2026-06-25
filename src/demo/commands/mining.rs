@@ -6,6 +6,7 @@ use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 use crate::demo::{
     ai::{Ai, PickNextTarget},
     commands::{CommandQueue, EntityCommand, NextCommand, path_following::FollowPath},
+    health::Health,
     level::map::Occupancy,
     player::Player,
 };
@@ -47,25 +48,9 @@ impl AttackStats {
     pub fn range(&self) -> f32 {
         self.range
     }
-}
 
-#[derive(Component)]
-/// Used for rocks for the moment
-pub struct Health {
-    current: f32,
-}
-
-impl Health {
-    pub fn new(max: f32) -> Self {
-        Self { current: max }
-    }
-
-    pub fn is_dead(&self) -> bool {
-        self.current <= 0.0
-    }
-
-    pub fn take_damage(&mut self, damages: &AttackStats) {
-        self.current -= damages.power
+    pub fn amount(&self) -> f32 {
+        self.power
     }
 }
 

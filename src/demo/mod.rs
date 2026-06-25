@@ -8,6 +8,7 @@ use bevy::prelude::*;
 pub mod ai;
 mod animation;
 pub mod commands;
+pub mod health;
 mod input;
 pub mod level;
 mod movement;
@@ -24,5 +25,6 @@ pub(super) fn plugin(app: &mut App) {
         commands::plugin,
         ai::plugin,
         ui::plugin,
+        health::plugin,
     ));
 }

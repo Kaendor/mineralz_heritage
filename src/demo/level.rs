@@ -56,6 +56,14 @@ pub struct LevelAssets {
     #[asset(path = "images/warning.png")]
     #[asset(image(sampler(filter = nearest)))]
     pub warning: Handle<Image>,
+
+    #[asset(path = "images/empty_health.png")]
+    #[asset(image(sampler(filter = nearest)))]
+    pub empty_health: Handle<Image>,
+
+    #[asset(path = "images/full_health.png")]
+    #[asset(image(sampler(filter = nearest)))]
+    pub full_health: Handle<Image>,
 }
 
 /// A system that spawns the main level.

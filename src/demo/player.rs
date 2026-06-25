@@ -7,10 +7,8 @@ use bevy_asset_loader::asset_collection::AssetCollection;
 use leafwing_input_manager::{plugin::InputManagerPlugin, prelude::InputMap};
 
 use crate::demo::{
-    commands::{
-        mining::{AttackStats, Health},
-        path_following::MovementController,
-    },
+    commands::{mining::AttackStats, path_following::MovementController},
+    health::Health,
     input::Action,
     level::buildings::PreparedBuilding,
 };

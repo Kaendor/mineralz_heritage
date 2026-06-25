@@ -7,6 +7,7 @@ use bevy::{
         pointer::PointerId,
     },
     prelude::*,
+    sprite::Anchor,
 };
 use bevy_ecs_tilemap::{
     TilemapPlugin,
@@ -21,9 +22,10 @@ use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 use crate::demo::{
     commands::{
         CommandQueue, EntityCommand, NextCommand,
-        mining::{Health, on_right_click_request_mining},
+        mining::on_right_click_request_mining,
         path_following::{FollowPath, Obstacle},
     },
+    health::{Health, HealthDisplay, healthbar},
     level::{
         LevelAssets,
         buildings::{
@@ -180,34 +182,38 @@ pub fn on_left_click_spawn_prepared_building(
 
     match prepared_building {
         Building::Rock => {
+            let health = Health::new(5.0);
             let rock_entity = commands
                 .spawn((
                     Name::new("Rock"),
                     *tile_pos,
                     Sprite::from_image(assets.rock.clone()),
                     Transform::from_translation(building_world_position.extend(0.2)),
-                    Health::new(5.0),
                     Obstacle,
                     Aabb::from_min_max(Vec3::ZERO, Vec3::splat(32.0).with_z(0.0)),
                     Pickable::default(),
+                    health.clone(),
                 ))
+                .with_child(healthbar(&assets, &health))
                 .observe(on_right_click_request_mining)
                 .id();
             occupancy.occupy(*tile_pos, rock_footprint, rock_entity);
         }
         Building::Wall => {
+            let health = Health::new(5.0);
             let wall_entity = commands
                 .spawn((
                     Name::new("Wall"),
                     *tile_pos,
                     Sprite::from_image(assets.wall.clone()),
                     Transform::from_translation(building_world_position.extend(0.2)),
-                    Health::new(5.0),
+                    health.clone(),
                     Obstacle,
                     Aabb::from_min_max(Vec3::ZERO, Vec3::splat(32.0).with_z(0.0)),
                     Pickable::default(),
                     Faction::player(),
                 ))
+                .with_child(healthbar(&assets, &health))
                 .id();
             occupancy.occupy(*tile_pos, rock_footprint, wall_entity);
         }
