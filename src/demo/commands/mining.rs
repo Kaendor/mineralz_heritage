@@ -6,7 +6,7 @@ use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 use crate::demo::{
     ai::{Ai, PickNextTarget},
     commands::{CommandQueue, EntityCommand, NextCommand, path_following::FollowPath},
-    health::Health,
+    health::{Die, Health, TakeDamage},
     level::map::Occupancy,
     player::Player,
 };
@@ -138,7 +138,7 @@ fn process_attack_order(
     mut occupancy: ResMut<Occupancy>,
     time: Res<Time>,
 ) {
-    for (miner, order, mut stats, m_transform, is_ai) in &mut miners {
+    for (attacker, order, mut stats, m_transform, is_ai) in &mut miners {
         stats.timer.tick(time.delta());
 
         if !stats.timer.just_finished() {
@@ -160,21 +160,27 @@ fn process_attack_order(
         if target_in_range {
             info!("Damage rock for {stats:?}");
             target.take_damage(&stats);
+            commands
+                .entity(order.target)
+                .trigger(|e| TakeDamage::new(e, &stats));
 
             if target.is_dead() {
                 info!("Target is dead");
                 commands
-                    .entity(miner)
+                    .entity(attacker)
                     .remove::<AttackOrder>()
                     .trigger(NextCommand);
                 commands.entity(order.target).despawn();
                 occupancy.free(order.target);
+                commands
+                    .entity(order.target)
+                    .trigger(|e| Die::new(e, attacker));
 
                 if is_ai.is_some() {
                     info!("AI must pick another target");
 
                     commands
-                        .entity(miner)
+                        .entity(attacker)
                         .trigger(|e| PickNextTarget { entity: e });
                 }
             }

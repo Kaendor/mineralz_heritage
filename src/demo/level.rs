@@ -126,7 +126,7 @@ pub fn spawn_level(
 
     let player = commands
         .spawn((
-            player(&player_assets),
+            player(&player_assets, &level_assets),
             player_tile_position,
             Transform::from_translation(player_world_position.extend(0.1)),
             ChildOf(level),

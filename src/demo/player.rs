@@ -8,9 +8,9 @@ use leafwing_input_manager::{plugin::InputManagerPlugin, prelude::InputMap};
 
 use crate::demo::{
     commands::{mining::AttackStats, path_following::MovementController},
-    health::Health,
+    health::{Health, healthbar},
     input::Action,
-    level::buildings::PreparedBuilding,
+    level::{LevelAssets, buildings::PreparedBuilding},
 };
 
 pub(super) fn plugin(app: &mut App) {
@@ -64,7 +64,8 @@ pub fn update_cursor_pos(
 }
 
 /// The player character.
-pub fn player(player_assets: &PlayerAssets) -> impl Bundle {
+pub fn player(player_assets: &PlayerAssets, level_assets: &LevelAssets) -> impl Bundle {
+    let health = Health::new(10.0);
     (
         Name::new("Player"),
         Player,
@@ -79,8 +80,9 @@ pub fn player(player_assets: &PlayerAssets) -> impl Bundle {
             (Action::ChangePreparedBuilding, KeyCode::KeyC),
         ]),
         PreparedBuilding::default(),
-        Health::new(20.0),
+        health.clone(),
         Faction::player(),
+        children![healthbar(&level_assets, health)],
     )
 }
 

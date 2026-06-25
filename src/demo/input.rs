@@ -7,7 +7,6 @@ use bevy::{
         pointer::PointerId,
     },
     prelude::*,
-    sprite::Anchor,
 };
 use bevy_ecs_tilemap::{
     TilemapPlugin,
@@ -25,7 +24,7 @@ use crate::demo::{
         mining::on_right_click_request_mining,
         path_following::{FollowPath, Obstacle},
     },
-    health::{Health, HealthDisplay, healthbar},
+    health::{Health, healthbar},
     level::{
         LevelAssets,
         buildings::{
@@ -194,7 +193,7 @@ pub fn on_left_click_spawn_prepared_building(
                     Pickable::default(),
                     health.clone(),
                 ))
-                .with_child(healthbar(&assets, &health))
+                .with_child(healthbar(&assets, health))
                 .observe(on_right_click_request_mining)
                 .id();
             occupancy.occupy(*tile_pos, rock_footprint, rock_entity);
@@ -213,7 +212,7 @@ pub fn on_left_click_spawn_prepared_building(
                     Pickable::default(),
                     Faction::player(),
                 ))
-                .with_child(healthbar(&assets, &health))
+                .with_child(healthbar(&assets, health))
                 .id();
             occupancy.occupy(*tile_pos, rock_footprint, wall_entity);
         }
