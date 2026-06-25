@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use bevy::{color::palettes, prelude::*};
+use bevy_tweening::{EaseMethod, Tween, TweenAnim, lens::TransformPositionLens};
 use vleue_navigator::{NavMesh, prelude::ManagedNavMesh};
 
 use crate::demo::{

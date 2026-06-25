@@ -80,9 +80,9 @@ pub fn player(player_assets: &PlayerAssets, level_assets: &LevelAssets) -> impl 
             (Action::ChangePreparedBuilding, KeyCode::KeyC),
         ]),
         PreparedBuilding::default(),
-        health.clone(),
+        health,
         Faction::player(),
-        children![healthbar(&level_assets, health)],
+        children![healthbar(level_assets, health)],
     )
 }
 

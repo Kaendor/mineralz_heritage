@@ -191,7 +191,7 @@ pub fn on_left_click_spawn_prepared_building(
                     Obstacle,
                     Aabb::from_min_max(Vec3::ZERO, Vec3::splat(32.0).with_z(0.0)),
                     Pickable::default(),
-                    health.clone(),
+                    health,
                 ))
                 .with_child(healthbar(&assets, health))
                 .observe(on_right_click_request_mining)
@@ -206,7 +206,7 @@ pub fn on_left_click_spawn_prepared_building(
                     *tile_pos,
                     Sprite::from_image(assets.wall.clone()),
                     Transform::from_translation(building_world_position.extend(0.2)),
-                    health.clone(),
+                    health,
                     Obstacle,
                     Aabb::from_min_max(Vec3::ZERO, Vec3::splat(32.0).with_z(0.0)),
                     Pickable::default(),

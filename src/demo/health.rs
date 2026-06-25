@@ -24,14 +24,14 @@ pub struct HealthDisplay;
 pub struct TakeDamage {
     #[event_target]
     from: Entity,
-    amount: f32,
+    // amount: f32,
 }
 
 impl TakeDamage {
-    pub fn new(from: Entity, damages: &AttackStats) -> Self {
+    pub fn new(from: Entity, _damages: &AttackStats) -> Self {
         Self {
             from,
-            amount: damages.amount(),
+            // amount: damages.amount(),
         }
     }
 }
@@ -40,14 +40,14 @@ impl TakeDamage {
 pub struct Die {
     #[event_target]
     target: Entity,
-    killed_by: Entity,
+    // killed_by: Entity,
 }
 
 impl Die {
-    pub fn new(target: Entity, killer: Entity) -> Self {
+    pub fn new(target: Entity, _killer: Entity) -> Self {
         Self {
             target,
-            killed_by: killer,
+            // killed_by: killer,
         }
     }
 }
